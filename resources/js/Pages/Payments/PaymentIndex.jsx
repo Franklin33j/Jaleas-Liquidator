@@ -2,28 +2,15 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
 import PaymentForm from './Components/PaymentForm';
 import Toolbar from './Components/Toolbar';
-import { useEffect } from 'react';
-import axios from 'axios';
 import PaymentProvider from './State/PaymentProvider';
 import DataTable from './Components/DataTable';
+import { ToastContainer } from 'react-toastify';
+import ConfirmModal from './Components/ConfirmModal';
 
 export default function PaymentIndex() {
-    useEffect(() => {
-        {
-            axios.get(route('api.customers.index')) // La URL de tu ruta en Laravel
-                .then(response => {
-                    // Aquí es donde "ves" los datos por consola para depurar
-                    console.log("Datos recibidos:", response.data.data);
-                })
-                .catch(error => {
-                    console.error("Hubo un error:", error);
-                });
-        };
-    }, [])
 
     return (
         <AuthenticatedLayout
-
         >
             <Head title="Dashboard" />
 
@@ -32,9 +19,20 @@ export default function PaymentIndex() {
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <div className="p-6 text-gray-900">
                             <PaymentProvider>
+                                <ToastContainer
+                                    position="top-right"
+                                    autoClose={3000}
+                                    hideProgressBar={false}
+                                    newestOnTop
+                                    closeOnClick
+                                    pauseOnHover
+                                    theme="colored"
+                                />
+                                <ConfirmModal/>
                                 <Toolbar />
                                 <PaymentForm />
                                 <DataTable />
+
                             </PaymentProvider>
 
                         </div>

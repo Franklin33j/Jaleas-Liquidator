@@ -1,17 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useEffect, useContext } from 'react';
+import axios from 'axios';
 import {
     Search, Calendar, Filter, SortAsc, SortDesc,
     FileText, Table, ChevronDown, User, X, ListOrdered,
-    CheckCircle2, ArrowRight
+    CheckCircle2
 } from 'lucide-react';
-
-// --- Sub-componentes reutilizables ---
-
-const Badge = ({ children }) => (
-    <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold bg-indigo-500 text-white rounded-full">
-        {children}
-    </span>
-);
+import PaymentContext from '../State/PaymentContext';
 
 const FilterChip = ({ label, onRemove }) => (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full text-[10px] font-semibold">
@@ -22,57 +16,77 @@ const FilterChip = ({ label, onRemove }) => (
     </span>
 );
 
-// --- Componente Principal ---
 const Toolbar = () => {
     const today = new Date().toISOString().split('T')[0];
 
-    const initialFilters = {
-        search: '',
-        from_date: today,
-        to_date: today,
-        status: 'all',
-        order: 'desc',
-        per_page: '10',
-        client_id: null,
-        client_name: 'Todos los clientes',
-    };
+    const { initialFilters, filters, setFilters, fetchPayments, exportExcelPayments, exportPdf } = useContext(PaymentContext)
 
-    const [filters, setFilters] = useState(initialFilters);
-    const [showClientModal, setShowClientModal] = useState(false);
-    const [clientSearch, setClientSearch] = useState('');
+    const [showCustomerModal, setShowCustomerModal] = useState(false);
+    const [customerSearch, setCustomerSearch] = useState('');
+    const [customers, setCustomers] = useState([{ id: null, name: 'Todos los clientes' }]);
+    const [loadingCustomers, setLoadingCustomers] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
     const searchRef = useRef(null);
 
-    const mockClients = [
-        { id: null, name: 'Todos los clientes' },
-        { id: 1, name: 'Jaleas S.A.' },
-        { id: 2, name: 'Tienda Central' },
-        { id: 3, name: 'Distribuidora Norte' },
-    ];
+    useEffect(() => {
+        if (!showCustomerModal) {
+            setCustomerSearch('');
+            setCustomers([{ id: null, name: 'Todos los clientes' }]);
+        }
+    }, [showCustomerModal]);
 
-    const [isSearching, setIsSearching] = useState(false);
+    useEffect(() => {
+        if (customerSearch.length <= 1) {
+            setCustomers([{ id: null, name: 'Todos los clientes' }]);
+            return;
+        }
+        const controller = new AbortController();
+        const timer = setTimeout(async () => {
+            setLoadingCustomers(true);
+            try {
+                const response = await axios.post(
+                    route('api.customers.findByMatch'),
+                    { search: customerSearch },
+                    { signal: controller.signal }
+                );
+                setCustomers([
+                    { id: null, name: 'Todos los clientes' },
+                    ...(response.data.data || [])
+                ]);
+            } catch (error) {
+                if (!axios.isCancel(error)) console.error(error);
+            } finally {
+                setLoadingCustomers(false);
+            }
+        }, 400);
+        return () => { clearTimeout(timer); controller.abort(); };
+    }, [customerSearch]);
 
     const handleFilterChange = (key, value) => setFilters(prev => ({ ...prev, [key]: value }));
 
     const handleSearch = () => {
         setIsSearching(true);
-        // Aquí iría tu lógica real de búsqueda / Inertia visit / fetch
+        fetchPayments()
         setTimeout(() => setIsSearching(false), 800);
     };
 
     const resetFilters = () => {
         setFilters(initialFilters);
-        setClientSearch('');
+        setCustomerSearch('');
     };
 
-    // Calcula cuántos filtros no son el valor por defecto
     const activeFilterCount = [
         filters.search !== '',
-        filters.client_id !== null,
+        filters.customer_id !== null,
         filters.from_date !== today || filters.to_date !== today,
         filters.status !== 'all',
     ].filter(Boolean).length;
 
     const removeChip = (key) => handleFilterChange(key, initialFilters[key]);
+    useEffect(() => {
+        fetchPayments()
+    }, [])
+
 
     return (
         <>
@@ -107,15 +121,14 @@ const Toolbar = () => {
 
                     {/* Selector de Cliente */}
                     <button
-                        onClick={() => setShowClientModal(true)}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all min-w-[170px] ${
-                            filters.client_id
-                                ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
-                                : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-indigo-300 hover:bg-indigo-50/40'
-                        }`}
+                        onClick={() => setShowCustomerModal(true)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all min-w-[170px] ${filters.customer_id
+                            ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-indigo-300 hover:bg-indigo-50/40'
+                            }`}
                     >
-                        <User size={13} className={filters.client_id ? 'text-indigo-500' : 'text-gray-400'} />
-                        <span className="flex-1 truncate font-medium text-left">{filters.client_name}</span>
+                        <User size={13} className={filters.customer_id ? 'text-indigo-500' : 'text-gray-400'} />
+                        <span className="flex-1 truncate font-medium text-left">{filters.customer_name}</span>
                         <ChevronDown size={11} className="text-gray-400 shrink-0" />
                     </button>
 
@@ -142,11 +155,10 @@ const Toolbar = () => {
 
                     {/* Estado */}
                     <select
-                        className={`px-2.5 py-1.5 border rounded-lg text-[11px] focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all ${
-                            filters.status !== 'all'
-                                ? 'bg-indigo-50 border-indigo-300 text-indigo-700 font-semibold'
-                                : 'bg-gray-50 border-gray-200 text-gray-600'
-                        }`}
+                        className={`px-2.5 py-1.5 border rounded-lg text-[11px] focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all ${filters.status !== 'all'
+                            ? 'bg-indigo-50 border-indigo-300 text-indigo-700 font-semibold'
+                            : 'bg-gray-50 border-gray-200 text-gray-600'
+                            }`}
                         value={filters.status}
                         onChange={e => handleFilterChange('status', e.target.value)}
                     >
@@ -164,8 +176,8 @@ const Toolbar = () => {
                             onChange={e => handleFilterChange('per_page', e.target.value)}
                         >
                             <option value="10">10 / pág.</option>
-                            <option value="25">25 / pág.</option>
-                            <option value="50">50 / pág.</option>
+                            <option value="15">15 / pág.</option>
+                            <option value="20">20 / pág.</option>
                         </select>
                     </div>
 
@@ -190,8 +202,8 @@ const Toolbar = () => {
                         {isSearching ? (
                             <>
                                 <svg className="animate-spin" width={13} height={13} viewBox="0 0 24 24" fill="none">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3V4a10 10 0 100 20v-2a8 8 0 01-8-8z"/>
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3V4a10 10 0 100 20v-2a8 8 0 01-8-8z" />
                                 </svg>
                                 Buscando...
                             </>
@@ -206,8 +218,6 @@ const Toolbar = () => {
 
                 {/* ── Fila Secundaria: Chips activos + Exportar ── */}
                 <div className={`flex items-center justify-between gap-3 px-3 py-2 border-t border-gray-100 bg-gray-50/60 transition-all ${activeFilterCount > 0 ? 'opacity-100' : 'opacity-70'}`}>
-
-                    {/* Chips de filtros activos */}
                     <div className="flex items-center gap-2 flex-wrap">
                         {activeFilterCount > 0 ? (
                             <>
@@ -218,14 +228,26 @@ const Toolbar = () => {
                                 {filters.search && (
                                     <FilterChip label={`"${filters.search}"`} onRemove={() => removeChip('search')} />
                                 )}
-                                {filters.client_id && (
-                                    <FilterChip label={filters.client_name} onRemove={() => { removeChip('client_id'); removeChip('client_name'); }} />
+                                {filters.customer_id && (
+                                    <FilterChip
+                                        label={filters.customer_name}
+                                        onRemove={() => {
+                                            removeChip('customer_id');
+                                            removeChip('customer_name');
+                                        }}
+                                    />
                                 )}
                                 {(filters.from_date !== today || filters.to_date !== today) && (
-                                    <FilterChip label={`${filters.from_date} → ${filters.to_date}`} onRemove={() => { removeChip('from_date'); removeChip('to_date'); }} />
+                                    <FilterChip
+                                        label={`${filters.from_date} → ${filters.to_date}`}
+                                        onRemove={() => { removeChip('from_date'); removeChip('to_date'); }}
+                                    />
                                 )}
                                 {filters.status !== 'all' && (
-                                    <FilterChip label={filters.status === 'active' ? 'Activos' : 'Inactivos'} onRemove={() => removeChip('status')} />
+                                    <FilterChip
+                                        label={filters.status === 'active' ? 'Activos' : 'Inactivos'}
+                                        onRemove={() => removeChip('status')}
+                                    />
                                 )}
                                 <button
                                     onClick={resetFilters}
@@ -244,10 +266,12 @@ const Toolbar = () => {
 
                     {/* Exportar */}
                     <div className="flex items-center gap-1.5 shrink-0">
-                        <button className="flex items-center gap-1 px-2.5 py-1 bg-white text-red-600 rounded-lg border border-red-200 hover:bg-red-50 transition text-[10px] font-bold shadow-sm">
+                        <button className="flex items-center gap-1 px-2.5 py-1 bg-white text-red-600 rounded-lg border border-red-200 hover:bg-red-50 transition text-[10px] font-bold shadow-sm"
+                            onClick={() => exportPdf()}>
                             <FileText size={12} /> PDF
                         </button>
-                        <button className="flex items-center gap-1 px-2.5 py-1 bg-white text-green-700 rounded-lg border border-green-200 hover:bg-green-50 transition text-[10px] font-bold shadow-sm">
+                        <button className="flex items-center gap-1 px-2.5 py-1 bg-white text-green-700 rounded-lg border border-green-200 hover:bg-green-50 transition text-[10px] font-bold shadow-sm"
+                            onClick={() => exportExcelPayments()}>
                             <Table size={12} /> Excel
                         </button>
                     </div>
@@ -255,10 +279,10 @@ const Toolbar = () => {
             </div>
 
             {/* ── Modal de Cliente ── */}
-            {showClientModal && (
+            {showCustomerModal && (
                 <div
                     className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-                    onClick={() => setShowClientModal(false)}
+                    onClick={() => setShowCustomerModal(false)}
                 >
                     <div
                         className="bg-white rounded-xl shadow-xl w-full max-w-sm p-5"
@@ -266,7 +290,7 @@ const Toolbar = () => {
                     >
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-sm font-bold text-gray-800">Filtrar por Cliente</h3>
-                            <button onClick={() => setShowClientModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                            <button onClick={() => setShowCustomerModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
                                 <X size={16} />
                             </button>
                         </div>
@@ -278,35 +302,42 @@ const Toolbar = () => {
                                 autoFocus
                                 placeholder="Buscar cliente..."
                                 className="w-full pl-8 pr-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 transition-all"
-                                value={clientSearch}
-                                onChange={e => setClientSearch(e.target.value)}
+                                value={customerSearch}
+                                onChange={e => setCustomerSearch(e.target.value)}
                             />
                         </div>
 
                         <div className="max-h-52 overflow-y-auto rounded-lg border border-gray-100 divide-y divide-gray-50">
-                            {mockClients
-                                .filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()))
-                                .map(c => (
-                                    <button
-                                        key={c.id ?? 'all'}
-                                        onClick={() => {
-                                            handleFilterChange('client_id', c.id);
-                                            handleFilterChange('client_name', c.name);
-                                            setShowClientModal(false);
-                                        }}
-                                        className={`w-full flex items-center justify-between px-3 py-2.5 text-xs text-left transition-colors ${
-                                            c.id === filters.client_id
-                                                ? 'bg-indigo-50 text-indigo-700 font-semibold'
-                                                : 'hover:bg-gray-50 text-gray-600'
+                            {customerSearch.length <= 1 && (
+                                <div className="p-3 text-xs text-gray-400 text-center">
+                                    Escribe al menos 2 caracteres...
+                                </div>
+                            )}
+                            {loadingCustomers && (
+                                <div className="p-3 text-xs text-gray-400 text-center">Buscando...</div>
+                            )}
+                            {!loadingCustomers && customerSearch.length > 1 && customers.length <= 1 && (
+                                <div className="p-3 text-xs text-gray-500 text-center">No se encontraron resultados.</div>
+                            )}
+                            {!loadingCustomers && customers.map(c => (
+                                <button
+                                    key={c.id ?? 'all'}
+                                    onClick={() => {
+                                        handleFilterChange('customer_id', c.id);
+                                        handleFilterChange('customer_name', c.name);
+                                        setShowCustomerModal(false);
+                                    }}
+                                    className={`w-full flex items-center justify-between px-3 py-2.5 text-xs text-left transition-colors ${c.id === filters.customer_id
+                                        ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                                        : 'hover:bg-gray-50 text-gray-600'
                                         }`}
-                                    >
-                                        <span>{c.name}</span>
-                                        {c.id === filters.client_id && (
-                                            <CheckCircle2 size={14} className="text-indigo-500" />
-                                        )}
-                                    </button>
-                                ))
-                            }
+                                >
+                                    <span>{c.name}</span>
+                                    {c.id === filters.customer_id && (
+                                        <CheckCircle2 size={14} className="text-indigo-500" />
+                                    )}
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>

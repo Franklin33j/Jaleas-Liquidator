@@ -16,7 +16,7 @@ return new class extends Migration
             $table->id();
             $table->integer('receipt_number');
             $table->date('date');
-            $table->foreignId('customers_id')->constrained('customers');
+            $table->foreignId('customer_id')->constrained('customers');
             $table->float('bill_payment');
             $table->float('balance');
             $table->integer('invoice_number');

@@ -10,6 +10,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -60,5 +61,19 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    Route::get('/customers',  [CustomerController::class,'index'])->name('api.customers.index');
+
+
+    Route::prefix('customers')->group(function () {
+        Route::get('/', [CustomerController::class, 'index'])->name('api.customers.index');
+        Route::post('/find-by-match', [CustomerController::class, 'findByMatch'])->name('api.customers.findByMatch');
+    });
+
+
+    Route::prefix('payments')->group(function () {
+        Route::post('/list', [PaymentController::class, 'index'])->name('api.payments.index');
+        Route::post('/store', [PaymentController::class, 'store'])->name('api.payments.store');
+        Route::post('/export-excel', [PaymentController::class, 'exportExcel'])->name('api.payments.exportExcel');
+        Route::post('/export-pdf', [PaymentController::class, 'exportPDF'])->name('api.payments.exportPDF');
+        Route::delete('/{id}', [PaymentController::class, 'delete'])->name('api.payments.destroy');
+    });
 });

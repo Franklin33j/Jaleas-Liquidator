@@ -24,4 +24,29 @@ class CustomerController extends Controller
             ]);
         }
     }
+    public function findByMatch(Request $request)
+    {
+
+        try {
+            $request->validate([
+                'search' => 'required|string|min:2'
+            ]);
+
+            $searchTerm = $request->search;
+
+            $customers = Customer::where('name', 'LIKE', "%{$searchTerm}%")
+                ->limit(15)
+                ->get();
+
+            return response()->json([
+                'data' => $customers
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                "message" => "Error interno",
+                "data" => null,
+                "error" => "La solicitud no se procesó con éxito, contacte su administrador",
+            ], 500);
+        }
+    }
 }
