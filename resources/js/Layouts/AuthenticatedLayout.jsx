@@ -36,6 +36,12 @@ export default function AuthenticatedLayout({  children }) {
                                 >
                                     Pagos
                                 </NavLink>
+                                 <NavLink
+                                    href={route('operations')}
+                                    active={route().current('operations')}
+                                >
+                                    Operaciones
+                                </NavLink>
                             </div>
                         </div>
 

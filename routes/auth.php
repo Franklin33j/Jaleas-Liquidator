@@ -14,10 +14,10 @@ use App\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
-    Route::get('register', [RegisteredUserController::class, 'create'])
-        ->name('register');
 
-    Route::post('register', [RegisteredUserController::class, 'store']);
+    Route::fallback(function () {
+        return redirect()->route('login');
+    });
 
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
@@ -74,6 +74,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/store', [PaymentController::class, 'store'])->name('api.payments.store');
         Route::post('/export-excel', [PaymentController::class, 'exportExcel'])->name('api.payments.exportExcel');
         Route::post('/export-pdf', [PaymentController::class, 'exportPDF'])->name('api.payments.exportPDF');
-        Route::delete('/{id}', [PaymentController::class, 'delete'])->name('api.payments.destroy');
+        Route::delete('/{id}', [PaymentController::class, 'delete 
+        0'])->name('api.payments.destroy');
     });
 });
