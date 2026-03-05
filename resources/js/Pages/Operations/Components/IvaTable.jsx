@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Trash2, Plus, Copy, Check, Receipt, Eraser, Combine, ListChecks, Tag } from 'lucide-react';
+import { Trash2, Plus, Copy, Check, Eraser, Combine, ListChecks, Tag } from 'lucide-react';
 
 const IvaTable = () => {
     // --- ESTADOS ---
@@ -36,7 +36,7 @@ const IvaTable = () => {
         if (isNaN(qtyNum) || qtyNum <= 0 || isNaN(netNum) || netNum <= 0) return;
 
         const newProduct = {
-            id: Date.now(),
+            id: Date.now() + Math.random(), // ID más único
             description: `Producto ${counter}`,
             qty: qtyNum,
             netPriceOriginal: netNum,
@@ -88,11 +88,35 @@ const IvaTable = () => {
         setSelectedIds([]);
     };
 
-    const copyToClipboard = (value, type, id, decimals = 4) => {
+    // --- FUNCIÓN DE COPIADO ROBUSTA ---
+    const copyToClipboard = async (value, type, id, decimals = 4) => {
         const formatted = Number(value).toFixed(decimals);
-        navigator.clipboard.writeText(formatted);
-        setCopiedId(`${type}-${id}`);
-        setTimeout(() => setCopiedId(null), 1000);
+        const fullId = `${type}-${id}`;
+
+        try {
+            // Intento 1: API moderna
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(formatted);
+            } else {
+                // Intento 2: Fallback clásico (execCommand)
+                const textArea = document.createElement("textarea");
+                textArea.value = formatted;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-999999px";
+                textArea.style.top = "-999999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                textArea.remove();
+            }
+            
+            setCopiedId(fullId);
+            setTimeout(() => setCopiedId(null), 1000);
+        } catch (err) {
+            console.error('Error al copiar: ', err);
+            alert("No se pudo copiar automáticamente.");
+        }
     };
 
     // --- LÓGICA DE CÁLCULO ---
@@ -150,7 +174,7 @@ const IvaTable = () => {
                         />
                     </div>
                     <div className="flex-1">
-                        <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1">Precio Neto Total de la Fila (Sin IVA)</label>
+                        <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1">Precio Neto Total (Fila)</label>
                         <input
                             type="number"
                             step="0.0001"
@@ -170,7 +194,7 @@ const IvaTable = () => {
             {selectedIds.length >= 2 && (
                 <div className="bg-amber-100 border-2 border-amber-400 p-2 mb-3 rounded-lg flex justify-between items-center animate-pulse">
                     <span className="text-amber-900 font-black flex items-center gap-2 uppercase">
-                        <ListChecks size={18} /> {selectedIds.length} ítems seleccionados para combinar
+                        <ListChecks size={18} /> {selectedIds.length} ítems seleccionados
                     </span>
                     <button onClick={combineSelected} className="bg-amber-600 text-white px-4 py-1.5 rounded-md font-black text-[10px] hover:bg-amber-700 flex items-center gap-2 shadow-sm uppercase">
                         <Combine size={16} /> Combinar Filas
@@ -190,7 +214,6 @@ const IvaTable = () => {
                                 <th className="border border-gray-600 p-2 text-right text-amber-300 bg-amber-900/20">Desc/Fila</th>
                                 <th className="border border-gray-600 p-2 text-right text-blue-300 bg-blue-900/10">Unit. Neto</th>
                                 <th className="border border-gray-600 p-2 text-right text-purple-300 bg-purple-900/10">Unit. + IVA</th>
-                                {/* LAS DOS ÚLTIMAS COLUMNAS SOLICITADAS */}
                                 <th className="border border-gray-600 p-2 text-right bg-gray-700 text-gray-100">Total Neto Org.</th>
                                 <th className="border border-gray-600 p-2 text-right bg-green-900/30 text-green-300 font-black">Total + IVA</th>
                                 <th className="border border-gray-600 p-2 w-10"></th>
@@ -198,7 +221,7 @@ const IvaTable = () => {
                         </thead>
                         <tbody className="text-[12px]">
                             {processedProducts.length === 0 ? (
-                                <tr><td colSpan="9" className="p-12 text-center text-gray-400 font-bold italic uppercase tracking-widest">No hay datos en la tabla</td></tr>
+                                <tr><td colSpan="9" className="p-12 text-center text-gray-400 font-bold italic uppercase tracking-widest">No hay datos</td></tr>
                             ) : (
                                 processedProducts.map((p) => (
                                     <tr key={p.id} className={`${selectedIds.includes(p.id) ? 'bg-indigo-100' : 'hover:bg-gray-50'} transition-colors`}>
@@ -220,8 +243,8 @@ const IvaTable = () => {
                                         <td className="border border-gray-300 p-2 text-right font-mono font-bold text-blue-700">
                                             <div className="flex items-center justify-end gap-1">
                                                 <span>${p.unitNetWithDiscount.toFixed(4)}</span>
-                                                <button onClick={() => copyToClipboard(p.unitNetWithDiscount, 'un', p.id)} className="p-1 text-gray-300 hover:text-blue-600">
-                                                    {copiedId === `un-${p.id}` ? <Check size={12} className="text-green-600" /> : <Copy size={12} />}
+                                                <button onClick={() => copyToClipboard(p.unitNetWithDiscount, 'un', p.id, 4)} className="p-1 text-gray-300 hover:text-blue-600 transition-colors">
+                                                    {copiedId === `un-${p.id}` ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
                                                 </button>
                                             </div>
                                         </td>
@@ -229,28 +252,26 @@ const IvaTable = () => {
                                         <td className="border border-gray-300 p-2 text-right font-mono font-bold text-purple-700">
                                             <div className="flex items-center justify-end gap-1">
                                                 <span>${p.unitWithIva.toFixed(4)}</span>
-                                                <button onClick={() => copyToClipboard(p.unitWithIva, 'ui', p.id)} className="p-1 text-gray-300 hover:text-purple-600">
-                                                    {copiedId === `ui-${p.id}` ? <Check size={12} className="text-green-600" /> : <Copy size={12} />}
+                                                <button onClick={() => copyToClipboard(p.unitWithIva, 'ui', p.id, 4)} className="p-1 text-gray-300 hover:text-purple-600 transition-colors">
+                                                    {copiedId === `ui-${p.id}` ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
                                                 </button>
                                             </div>
                                         </td>
 
-                                        {/* TOTAL NETO ORIGINAL */}
                                         <td className="border border-gray-300 p-2 text-right font-mono text-gray-500 bg-gray-50">
                                             <div className="flex items-center justify-end gap-1">
                                                 <span>${p.netPriceOriginal.toFixed(2)}</span>
-                                                <button onClick={() => copyToClipboard(p.netPriceOriginal, 'no', p.id, 2)} className="p-1 text-gray-300 hover:text-gray-600">
-                                                    {copiedId === `no-${p.id}` ? <Check size={12} className="text-green-600" /> : <Copy size={12} />}
+                                                <button onClick={() => copyToClipboard(p.netPriceOriginal, 'no', p.id, 2)} className="p-1 text-gray-300 hover:text-gray-600 transition-colors">
+                                                    {copiedId === `no-${p.id}` ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
                                                 </button>
                                             </div>
                                         </td>
 
-                                        {/* TOTAL CON IVA */}
                                         <td className="border border-gray-300 p-2 text-right font-mono font-black text-green-700 bg-green-50">
                                             <div className="flex items-center justify-end gap-1">
                                                 <span>${p.rowTotalWithIva.toFixed(2)}</span>
-                                                <button onClick={() => copyToClipboard(p.rowTotalWithIva, 'ti', p.id, 2)} className="p-1 text-gray-300 hover:text-green-600">
-                                                    {copiedId === `ti-${p.id}` ? <Check size={12} className="text-green-600" /> : <Copy size={12} />}
+                                                <button onClick={() => copyToClipboard(p.rowTotalWithIva, 'ti', p.id, 2)} className="p-1 text-gray-300 hover:text-green-600 transition-colors">
+                                                    {copiedId === `ti-${p.id}` ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
                                                 </button>
                                             </div>
                                         </td>
@@ -277,11 +298,11 @@ const IvaTable = () => {
 
                             <div className="flex items-center gap-6">
                                 <div className="text-right">
-                                    <p className="text-[9px] text-gray-400 font-bold uppercase">Suma Netos Originales</p>
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase">Netos Originales</p>
                                     <p className="text-sm font-mono font-bold text-gray-200">${finalTotalNetoOriginal.toFixed(2)}</p>
                                 </div>
                                 <div className="text-right border-l border-white/10 pl-6">
-                                    <p className="text-[9px] text-amber-400 font-bold uppercase">Ajuste Aplicado</p>
+                                    <p className="text-[9px] text-amber-400 font-bold uppercase">Ajuste</p>
                                     <p className="text-sm font-mono font-bold text-amber-200">-${discountTotal.toFixed(2)}</p>
                                 </div>
                                 <div className="text-right border-l border-white/20 pl-6">
