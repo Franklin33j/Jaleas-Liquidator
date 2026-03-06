@@ -74,7 +74,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/store', [PaymentController::class, 'store'])->name('api.payments.store');
         Route::post('/export-excel', [PaymentController::class, 'exportExcel'])->name('api.payments.exportExcel');
         Route::post('/export-pdf', [PaymentController::class, 'exportPDF'])->name('api.payments.exportPDF');
-        Route::delete('/{id}', [PaymentController::class, 'delete 
-        0'])->name('api.payments.destroy');
+        Route::delete('/{id}', [PaymentController::class, 'delete'])->name('api.payments.destroy');
     });
 });
