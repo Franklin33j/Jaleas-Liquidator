@@ -33,8 +33,7 @@ class PaymentRequest extends FormRequest
                 'required',
                 'string',
                 'max:50',
-                // Único en la tabla payments, pero ignora el ID actual si es una actualización
-                'unique:payments,receipt_number,' . $paymentId
+                
             ],
             'invoice_number' => [
                 'required',
@@ -81,7 +80,7 @@ class PaymentRequest extends FormRequest
             'receipt_number.required' => 'El número de recibo es obligatorio.',
             'receipt_number.string'   => 'El número de recibo debe ser una cadena de texto.',
             'receipt_number.max'      => 'El número de recibo no puede exceder los 50 caracteres.',
-            'receipt_number.unique'   => 'Este número de recibo ya ha sido registrado anteriormente.',
+          
 
             // Número de Factura
             'invoice_number.required' => 'El número de factura es obligatorio.',
