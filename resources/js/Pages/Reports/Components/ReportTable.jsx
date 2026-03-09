@@ -10,7 +10,8 @@ import {
     X,
     Edit3,
     Check,
-    RotateCcw
+    RotateCcw,
+    Calendar
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -22,6 +23,9 @@ const ReportTable = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [editFormData, setEditFormData] = useState({});
+    
+    // NUEVO: Estado para la fecha manual del reporte (por defecto hoy)
+    const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
 
     // Estado para el nuevo registro manual
     const [newRow, setNewRow] = useState({
@@ -140,19 +144,26 @@ const ReportTable = () => {
 
     const totalVentaFiltrada = filteredData.reduce((acc, curr) => acc + curr.Total, 0);
 
-    // --- VISTA PREVIA PDF ---
+    // --- VISTA PREVIA PDF CON FECHA MANUAL ---
     const previewPDF = () => {
         const doc = new jsPDF('l', 'mm', 'a4');
+        
+        // Formatear la fecha del reporte de YYYY-MM-DD a DD/MM/YYYY
+        const dateParts = reportDate.split("-");
+        const formattedReportDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : reportDate;
+
         doc.setFontSize(18);
         doc.text('JALEAS DEL PINO SA DE CV', 14, 15);
         doc.setFontSize(11);
-        doc.text(`Vendedor: ${selectedVendedor || 'TODOS'} | Fecha Reporte: ${new Date().toLocaleDateString()}`, 14, 25);
+        doc.text(`Vendedor: ${selectedVendedor || 'TODOS'} | Fecha Reporte: ${formattedReportDate}`, 14, 25);
+        
         const grupos = filteredData.reduce((acc, item) => {
             const t = item["Término"];
             if (!acc[t]) acc[t] = [];
             acc[t].push(item);
             return acc;
         }, {});
+        
         let currentY = 35;
         Object.keys(grupos).sort().forEach((termino) => {
             const itemsGrupo = grupos[termino];
@@ -172,6 +183,7 @@ const ReportTable = () => {
             });
             currentY = doc.lastAutoTable.finalY + 12;
         });
+        
         doc.setFontSize(14);
         doc.text(`TOTAL GENERAL: $${totalVentaFiltrada.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 14, currentY);
         window.open(doc.output('bloburl'), '_blank');
@@ -185,27 +197,46 @@ const ReportTable = () => {
                     <div className="flex flex-col lg:flex-row justify-between items-center gap-4">
                         <div className="text-center lg:text-left">
                             <h1 className="text-2xl font-black text-indigo-900 leading-tight">JALEAS DEL PINO</h1>
-                            <span className="text-xs font-bold text-indigo-500 tracking-widest uppercase italic">Edición y Reportes Fiscales</span>
+                            <span className="text-xs font-bold text-indigo-500 tracking-widest uppercase italic">Gestión de Documentos Fiscales</span>
                         </div>
 
-                        <div className="flex flex-wrap gap-2 justify-center">
-                            <select className="border p-2 rounded-lg font-bold bg-gray-50 text-indigo-900" value={selectedVendedor} onChange={(e) => setSelectedVendedor(e.target.value)}>
-                                <option value="">Todos los Vendedores</option>
-                                {vendedoresUnicos.map(v => <option key={v} value={v}>{v}</option>)}
-                            </select>
-                            <input type="text" placeholder="Buscar cliente o número..." className="border p-2 rounded-lg w-56 shadow-sm" onChange={(e) => setFilterText(e.target.value)} />
+                        <div className="flex flex-wrap gap-2 justify-center items-end">
+                            {/* Selector Vendedor */}
+                            <div className="flex flex-col">
+                                <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Vendedor</label>
+                                <select className="border p-2 rounded-lg font-bold bg-gray-50 text-indigo-900 h-9" value={selectedVendedor} onChange={(e) => setSelectedVendedor(e.target.value)}>
+                                    <option value="">Todos</option>
+                                    {vendedoresUnicos.map(v => <option key={v} value={v}>{v}</option>)}
+                                </select>
+                            </div>
 
-                            <label className="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg font-bold cursor-pointer flex items-center gap-2 transition-all">
+                            {/* Selector Fecha Reporte (Manual) */}
+                            <div className="flex flex-col">
+                                <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Fecha Venta</label>
+                                <input 
+                                    type="date" 
+                                    className="border p-2 rounded-lg font-bold bg-gray-50 text-indigo-900 h-9" 
+                                    value={reportDate} 
+                                    onChange={(e) => setReportDate(e.target.value)} 
+                                />
+                            </div>
+
+                            <div className="flex flex-col">
+                                <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Búsqueda</label>
+                                <input type="text" placeholder="Cliente o No..." className="border p-2 rounded-lg w-44 h-9 shadow-sm" onChange={(e) => setFilterText(e.target.value)} />
+                            </div>
+
+                            <label className="bg-slate-700 hover:bg-slate-800 text-white px-4 h-9 rounded-lg font-bold cursor-pointer flex items-center gap-2 transition-all">
                                 <FileDown size={16} /> IMPORTAR
                                 <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="hidden" />
                             </label>
 
-                            <button onClick={() => setShowAddModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all shadow-md">
+                            <button onClick={() => setShowAddModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 h-9 rounded-lg font-bold flex items-center gap-2 transition-all shadow-md">
                                 <PlusCircle size={16} /> NUEVO
                             </button>
 
-                            <button onClick={previewPDF} disabled={data.length === 0} className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 disabled:bg-gray-300 transition-all shadow-md">
-                                <FileText size={16} /> PREVISTA PDF
+                            <button onClick={previewPDF} disabled={data.length === 0} className="bg-rose-600 hover:bg-rose-700 text-white px-4 h-9 rounded-lg font-bold flex items-center gap-2 disabled:bg-gray-300 transition-all shadow-md">
+                                <FileText size={16} /> PDF
                             </button>
                         </div>
                     </div>
@@ -231,7 +262,6 @@ const ReportTable = () => {
                                 {filteredData.map((row) => (
                                     <tr key={row.id_interno} className={`transition-colors ${editingId === row.id_interno ? 'bg-amber-50' : 'hover:bg-slate-50'}`}>
                                         {editingId === row.id_interno ? (
-                                            // MODO EDICIÓN
                                             <>
                                                 <td className="px-2 py-2"><input className="w-full border p-1" value={editFormData["Tipo Documento"]} onChange={e => setEditFormData({ ...editFormData, "Tipo Documento": e.target.value })} /></td>
                                                 <td className="px-2 py-2"><input className="w-full border p-1" value={editFormData["No."]} onChange={e => setEditFormData({ ...editFormData, "No.": e.target.value })} /></td>
@@ -251,7 +281,6 @@ const ReportTable = () => {
                                                 </td>
                                             </>
                                         ) : (
-                                            // MODO VISTA
                                             <>
                                                 <td className="px-4 py-3 font-bold text-indigo-700">{row["Tipo Documento"]}</td>
                                                 <td className="px-4 py-3 font-mono">{row["No."]}</td>
