@@ -24,4 +24,8 @@ Route::get('/operations', function () {
 Route::get('/reports', function () {
     return Inertia::render('Reports/ReportIndex');
 })->name('reports')->middleware('auth');
+
+Route::get('/customersr', function () {
+    return Inertia::render('Customers/CustomerIndex');
+})->name('customersr')->middleware('auth');
 require __DIR__ . '/auth.php';

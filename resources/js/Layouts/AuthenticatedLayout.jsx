@@ -48,6 +48,12 @@ export default function AuthenticatedLayout({  children }) {
                                 >
                                     Reporte V.
                                 </NavLink>
+                                <NavLink
+                                    href={route('customersr')}
+                                    active={route().current('customersr')}
+                                >
+                                    Reporte Clientes
+                                </NavLink>
                             </div>
                         </div>
 
