@@ -101,7 +101,7 @@ class PaymentController extends Controller
             return response()->json([
                 "message" => "Se ha eliminado la transaccion.",
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             return response()->json([
                 'error' => "No se ha podido procesar la operación, contacte a su administrador",
@@ -153,7 +153,7 @@ class PaymentController extends Controller
             return response()->json([
                 'data' => $query->get()
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'error' => 'Error al obtener los datos',
                 'details' => $e->getMessage()
