@@ -30,10 +30,17 @@ class UserSeeder extends Seeder
             'email' => 'rachel.quezada.chavez@outlook.com',
             'password' => Hash::make('12345678'), 
             'email_verified_at' => now(),
-        ]);*/
+        ]);
          User::create([
             'name' => 'Yesenia Dubon',
             'email' => 'jaz.dubon@outlook.com',
+            'password' => Hash::make('12345678'), 
+            'email_verified_at' => now(),
+        ]);*/
+
+         User::create([
+            'name' => 'Damaris Alfaro',
+            'email' => 'creditos.cobros@jaleasdelpino.com',
             'password' => Hash::make('12345678'), 
             'email_verified_at' => now(),
         ]);
