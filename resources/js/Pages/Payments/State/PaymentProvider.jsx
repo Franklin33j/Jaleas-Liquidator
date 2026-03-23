@@ -9,11 +9,11 @@ import { usePage } from '@inertiajs/react';
 
 const PaymentProvider = ({ children }) => {
     const { props } = usePage();
-
+    const today = new Date().toLocaleDateString('sv-SE')
     const initialData = {
         id: 0,
         receipt_number: '',
-        date: new Date().toISOString().split('T')[0],
+        date: today,
         customer_id: '',
         customer_name: '',
         bill_payment: '',
@@ -26,7 +26,7 @@ const PaymentProvider = ({ children }) => {
     const [showFormModal, setShowFormModal] = useState(false);
     const [showCustomerModal, setShowCustomerModal] = useState(false);
     const [search, setSearch] = useState('');
-    const today = new Date().toLocaleDateString('sv-SE');
+
     const [deleteForm, setDeleteForm] = useState(false);
     const [paymentId, setPaymentId] = useState(0)
 
@@ -133,8 +133,8 @@ const PaymentProvider = ({ children }) => {
                 params: { ...filters, export: true } // 'filters' debe ser tu estado actual de búsqueda
             });
 
-            const payments = response.data.data;
-
+            const paymentsRes = response.data.data;
+            console.log(paymentsRes)
             if (payments.length === 0) {
                 newTab.close();
                 return toast.warning("No hay datos para exportar");
@@ -152,7 +152,7 @@ const PaymentProvider = ({ children }) => {
             toast.error("Error al generar el PDF");
         }
     };
-    const deletePayment = async (id) => {
+    const deletePayment = async () => {
         try {
             await axios.delete(route('api.payments.destroy', paymentId));
             // Refresca la lista sin recargar la página
@@ -164,6 +164,43 @@ const PaymentProvider = ({ children }) => {
             toast.error('Error al eliminar el pago');
         }
     };
+    const fetchPayment = async (id) => {
+        try {
+            const response = await axios.get(route('api.payments.show', id));
+            const paymentData = response.data.data;
+
+            // --- RE-MAPEO DE DATOS ---
+            // Tomamos lo que viene de la API y lo acomodamos a tu initialData
+            const formattedData = {
+                id: paymentData.id,
+                receipt_number: paymentData.receipt_number || '',
+                date: paymentData.date,
+                // Aquí extraemos los datos del objeto anidado 'customer'
+                customer_id: paymentData.customer ? paymentData.customer.id : '',
+                customer_name: paymentData.customer ? paymentData.customer.name : '',
+                bill_payment: paymentData.bill_payment || '',
+                balance: paymentData.balance || '',
+                invoice_number: paymentData.invoice_number || '',
+                // Convertimos el status a boolean/number según necesite tu toggle
+                status: paymentData.status === 1 || paymentData.status === true,
+                notes: paymentData.notes || '',
+            };
+
+            // Ahora seteamos el objeto ya formateado
+            setData(formattedData);
+            setShowFormModal(true);
+
+        } catch (error) {
+            if (error.response && error.response.status === 404) {
+                toast.error(error.response.data.error || "El pago no existe");
+            } else {
+                console.error("Error al cargar el pago:", error);
+                toast.error("Error de conexión al obtener el registro");
+            }
+        }
+    };
+
+   
 
     useEffect(() => {
 
@@ -188,7 +225,8 @@ const PaymentProvider = ({ children }) => {
             exportPdf,
             deleteForm, setDeleteForm,
             paymentId, setPaymentId,
-            deletePayment
+            deletePayment,
+            fetchPayment
 
         }}>
             {children}

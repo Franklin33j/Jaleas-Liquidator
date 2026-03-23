@@ -35,11 +35,14 @@ const BalanceBadge = ({ balance }) => (
 
 
 const DataTable = () => {
-    const { payments, setPaymentId, setDeleteForm } = useContext(PaymentContext);
-    const [editingId, setEditingId] = useState(null);
+    const { payments, setPaymentId, setDeleteForm, setShowFormModal, fetchPayment } = useContext(PaymentContext);
+
+    const handleUpdate = (id) => {
+        setShowFormModal(true)
+        fetchPayment(id)
+    }
 
     const handleDelete = (id) => {
-        console.log(id)
         setDeleteForm(true)
         setPaymentId(id)
     };
@@ -85,7 +88,7 @@ const DataTable = () => {
                             ) : payments?.map(row => (
                                 <tr
                                     key={row.id}
-                                    className={`group transition-colors hover:bg-indigo-50/30 ${editingId === row.id ? 'bg-indigo-50/50 ring-1 ring-inset ring-indigo-200' : ''}`}
+                                    className={`group transition-colors hover:bg-indigo-50/30 `}
                                 >
                                     <td className="px-4 py-3 whitespace-nowrap">
                                         <span className="inline-flex items-center gap-1 font-mono font-bold text-indigo-600">
@@ -131,22 +134,33 @@ const DataTable = () => {
                                         </span>
                                     </td>
 
+                                    {/* Reemplaza el bloque de la celda de acciones por este: */}
                                     <td className="px-4 py-3">
-                                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
-                                                <Eye size={13} />
-                                            </button>
+                                        <div className="flex items-center justify-end gap-1">
+                                            {/* Botón Ver */}
                                             <button
-                                                onClick={() => setEditingId(editingId === row.id ? null : row.id)}
-                                                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${editingId === row.id ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
+                                                title="Ver detalles"
+                                                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 bg-gray-50 hover:text-indigo-600 hover:bg-indigo-100 transition-colors border border-gray-100"
                                             >
-                                                <Pencil size={13} />
+                                                <Eye size={14} />
                                             </button>
+
+                                            {/* Botón Editar */}
                                             <button
+                                                title="Editar registro"
+                                                onClick={() => handleUpdate(row.id)}
+                                                className="w-8 h-8 flex items-center justify-center rounded-lg text-amber-600 bg-amber-50 hover:text-amber-700 hover:bg-amber-100 transition-colors border border-amber-100"
+                                            >
+                                                <Pencil size={14} />
+                                            </button>
+
+                                            {/* Botón Eliminar */}
+                                            <button
+                                                title="Eliminar registro"
                                                 onClick={() => handleDelete(row.id)}
-                                                className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                                                className="w-8 h-8 flex items-center justify-center rounded-lg text-red-500 bg-red-50 hover:text-red-700 hover:bg-red-100 transition-colors border border-red-100"
                                             >
-                                                <Trash2 size={13} />
+                                                <Trash2 size={14} />
                                             </button>
                                         </div>
                                     </td>
@@ -159,7 +173,7 @@ const DataTable = () => {
                 <Pagination />
             </div>
 
-           
+
         </>
     );
 };

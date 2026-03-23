@@ -24,6 +24,9 @@ Route::get('/operations', function () {
 Route::get('/reports', function () {
     return Inertia::render('Reports/ReportIndex');
 })->name('reports')->middleware('auth');
+Route::get('/liquidations', function () {
+    return Inertia::render('Liquidations/LiquidationIndex');
+})->name('liquidations')->middleware('auth');
 
 Route::get('/customersr', function () {
     return Inertia::render('Customers/CustomerIndex');

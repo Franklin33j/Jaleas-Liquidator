@@ -71,9 +71,16 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('payments')->group(function () {
         Route::post('/list', [PaymentController::class, 'index'])->name('api.payments.index');
+        Route::get('/{id}', [PaymentController::class, 'show'])->name('api.payments.show');
         Route::post('/store', [PaymentController::class, 'store'])->name('api.payments.store');
+        Route::put('/{id}', [PaymentController::class, 'update'])->name('api.payments.update');
         Route::post('/export-excel', [PaymentController::class, 'exportExcel'])->name('api.payments.exportExcel');
         Route::post('/export-pdf', [PaymentController::class, 'exportPDF'])->name('api.payments.exportPDF');
         Route::delete('/{id}', [PaymentController::class, 'delete'])->name('api.payments.destroy');
+    });
+
+     Route::prefix('liquidations')->group(function () {
+        
+
     });
 });

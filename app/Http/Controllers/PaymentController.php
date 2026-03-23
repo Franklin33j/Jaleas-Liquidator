@@ -35,7 +35,7 @@ class PaymentController extends Controller
                 )
                 ->when(
                     $request->filled('customer_id'),
-                    fn($q) => $q->where('payments.customers_id', $request->customer_id)
+                    fn($q) => $q->where('payments.customer_id', $request->customer_id)
                 )
                 ->when($request->filled(['from_date', 'to_date']), function ($q) use ($request) {
                     $from = Carbon::parse($request->from_date)->startOfDay();
@@ -57,10 +57,74 @@ class PaymentController extends Controller
 
             return response()->json([
 
-                'error' => "No se ha podido procesar la operación, contacte a su administrador",
+                'error' => "No se ha podido procesar la operación, contacte a su administrador" . $e->getMessage(),
             ], 500);
         }
     }
+
+  public function show($id)
+{
+    try {
+    
+        $payment = Payment::with('customer')->find($id);
+        if (!$payment) {
+            return response()->json([
+                'success' =>null,
+                'message' => null,
+                'error' => "El registro no fue encontrado"
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $payment
+        ], 200);
+
+    } catch (\Exception $e) {
+
+        Log::error("Error crítico al leer el pago ID {$id}: " . $e->getMessage());
+        
+        return response()->json([
+            'success' => false,
+            'error' => 'Ocurrió un error inesperado en el servidor.',
+        ], 500);
+    }
+}
+
+    public function update(PaymentRequest $request, $id)
+    {
+        try {
+            DB::beginTransaction();
+
+            // 1. Buscar el registro o lanzar error 404 si no existe
+            $payment = Payment::findOrFail($id);
+
+            // 2. Actualizar con los datos validados del Request
+            $payment->update($request->validated());
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Pago actualizado con éxito',
+                'data' => $payment,
+                'error' => null
+            ], 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            DB::rollBack();
+            return response()->json([
+                'error' => "El registro de pago no existe.",
+            ], 404);
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error("Error al actualizar pago ID {$id}: " . $e->getMessage());
+
+            return response()->json([
+                'error' => "No se ha podido procesar la actualización, contacte a su administrador",
+            ], 500);
+        }
+    }
+
+
     public function store(PaymentRequest $request)
     {
         try {
@@ -116,46 +180,44 @@ class PaymentController extends Controller
     {
         try {
             $query = Payment::query()
-                ->join('customers', 'payments.customer_id', '=', 'customers.id')
+                // Usamos leftJoin para no perder pagos si un cliente fue borrado (soft delete)
+                ->leftJoin('customers', 'payments.customer_id', '=', 'customers.id')
                 ->select([
-                    'payments.*',
-                    'customers.name as customer_name',
-                    'customers.id as customer_id'
-                ]);
+                    'payments.*', // Trae todo de pagos
+                    'customers.name as customer_name', // Solo el nombre del cliente
+                ])
+                // Filtro de búsqueda
+                ->when($request->filled('search'), function ($q) use ($request) {
+                    $q->where(function ($sub) use ($request) {
+                        $sub->where('payments.receipt_number', 'LIKE', "%{$request->search}%")
+                            ->orWhere('payments.invoice_number', 'LIKE', "%{$request->search}%");
+                    });
+                })
+                // Filtro por cliente
+                ->when(
+                    $request->filled('customer_id'),
+                    fn($q) => $q->where('payments.customer_id', $request->customer_id)
+                )
+                // Rango de fechas (Optimizado para El Salvador)
+                ->when($request->filled(['from_date', 'to_date']), function ($q) use ($request) {
+                    $from = \Carbon\Carbon::parse($request->from_date)->startOfDay();
+                    $to = \Carbon\Carbon::parse($request->to_date)->endOfDay();
+                    $q->whereBetween('payments.date', [$from, $to]);
+                })
+                // Filtro de estado
+                ->when(
+                    $request->filled('status') && $request->status !== 'all',
+                    fn($q) => $q->where('payments.status', $request->status === 'active' ? 1 : 0)
+                )
+                // Orden y Paginación
+                ->orderBy('payments.date', $request->input('order', 'desc'))
+                ->paginate($request->input('per_page', 10));
 
-            // --- Filtros Lógicos ---
+            return response()->json($query); // Paginate ya devuelve un objeto con 'data', 'current_page', etc.
 
-            // Búsqueda por número de recibo
-            if ($request->filled('search')) {
-                $query->where('payments.receipt_number', 'LIKE', "%{$request->search}%");
-            }
-
-            // Filtro por Cliente específico
-            if ($request->filled('customer_id')) {
-                $query->where('payments.customer_id', $request->customer_id);
-            }
-
-            // Rango de fechas (Contabilidad)
-            if ($request->filled(['from_date', 'to_date'])) {
-                $from = Carbon::parse($request->from_date)->startOfDay();
-                $to = Carbon::parse($request->to_date)->endOfDay();
-                $query->whereBetween('payments.date', [$from, $to]);
-            }
-
-            // Estado (Activo/Inactivo)
-            if ($request->filled('status') && $request->status !== 'all') {
-                $status = $request->status === 'active' ? 1 : 0;
-                $query->where('payments.status', $status);
-            }
-
-            $query->orderBy('payments.date', $request->input('order', 'desc'));
-
+        } catch (\Exception $e) {
             return response()->json([
-                'data' => $query->get()
-            ]);
-        } catch (Exception $e) {
-            return response()->json([
-                'error' => 'Error al obtener los datos',
+                'error' => 'Error al procesar la solicitud',
                 'details' => $e->getMessage()
             ], 500);
         }
