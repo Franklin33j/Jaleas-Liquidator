@@ -44,6 +44,26 @@ const PaymentForm = () => {
         setProcessing(true);
         setErrors({});
 
+        // 1. Preparamos los datos para asegurar que los campos numéricos vacíos viajen como 0
+        const preparedData = {
+            ...data,
+            bill_payment: (data.bill_payment === '' || data.bill_payment === null || data.bill_payment === undefined)
+                ? 0
+                : data.bill_payment,
+            balance: (data.balance === '' || data.balance === null || data.balance === undefined)
+                ? 0
+                : data.balance,
+            receipt_number: (data.receipt_number === '' || data.receipt_number === null || data.receipt_number === undefined)
+                ? 0
+                : data.receipt_number,
+            invoice_number: (data.invoice_number === '' || data.invoice_number === null || data.invoice_number === undefined)
+                ? 0
+                : data.invoice_number,
+            // Forzamos que el status viaje como entero (0 o 1) para evitar problemas de tipos en la DB
+            status: (data.status == 1 || data.status === true) ? 1 : 0
+        };
+
+        // 2. Definimos la URL y el método según si es edición o creación
         const url = isEditing
             ? route('api.payments.update', data.id)
             : route('api.payments.store');
@@ -51,18 +71,26 @@ const PaymentForm = () => {
         const method = isEditing ? 'put' : 'post';
 
         try {
-            const response = await axios[method](url, data);
+            // 3. Enviamos 'preparedData' en lugar del estado original 'data'
+            const response = await axios[method](url, preparedData);
+
             toast.success(response.data.message || 'Operación realizada con éxito');
+
+            // Cerramos el modal y limpiamos el formulario
             setShowFormModal(false);
-            reset(); 
+            reset();
+
+            // Refrescamos la lista de pagos si la función existe
             if (fetchPayments) fetchPayments();
+
         } catch (error) {
             if (error.response && error.response.status === 422) {
+                // Errores de validación de Laravel (PaymentRequest)
                 setErrors(error.response.data.errors);
                 toast.error('Revisa los errores en el formulario');
             } else {
                 console.error('Error en la operación:', error);
-                toast.error('Ocurrió un error inesperado');
+                toast.error('Ocurrió un error inesperado al procesar el pago');
             }
         } finally {
             setProcessing(false);

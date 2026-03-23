@@ -32,12 +32,12 @@ class PaymentRequest extends FormRequest
         'receipt_number' => [
             'required',
             'numeric', // Cambiado de string a numeric
-            'min:1',   // Opcional: asegura que sea un número positivo
+            'min:0',   // Opcional: asegura que sea un número positivo
         ],
         'invoice_number' => [
             'required',
             'numeric', // Cambiado de string a numeric
-            'min:1',
+            'min:0',
         ],
         'date' => [
             'required',
