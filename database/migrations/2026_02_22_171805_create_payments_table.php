@@ -20,6 +20,7 @@ return new class extends Migration
             $table->float('bill_payment');
             $table->float('balance');
             $table->integer('invoice_number');
+             $table->decimal('invoice_amount', 10, 2);
             $table->boolean('status');
             $table->text('notes')->nullable();
             $table->text('logs')->nullable();

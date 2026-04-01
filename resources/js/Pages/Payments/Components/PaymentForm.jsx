@@ -8,6 +8,7 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import PaymentContext from '../State/PaymentContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+
 const PaymentForm = () => {
     const {
         showFormModal, setShowFormModal,
@@ -19,18 +20,32 @@ const PaymentForm = () => {
         fetchPayments
     } = useContext(PaymentContext);
 
-    // 1. Determinar modo dinámicamente
+    // 1. Determinar modo y fecha actual
     const isEditing = data.id && data.id > 0;
-
     const today = new Date().toLocaleDateString('sv-SE');
 
+    // 2. Efecto para valores iniciales al abrir el modal
     useEffect(() => {
         if (showFormModal) {
             if (!data.date) handleInputChange('date', today);
-            // Asegurar que el status tenga un valor inicial si es nuevo
             if (data.status === undefined || data.status === null) handleInputChange('status', 1);
         }
     }, [showFormModal]);
+
+    // 3. CÁLCULO AUTOMÁTICO: Balance = Factura - Pago
+    useEffect(() => {
+        const totalFactura = parseFloat(data.invoice_amount) || 0;
+        const montoPagado = parseFloat(data.bill_payment) || 0;
+        const nuevoSaldo = totalFactura - montoPagado;
+
+        // Solo actualizamos si el valor es numéricamente distinto para evitar loops
+        if (parseFloat(data.balance) !== nuevoSaldo) {
+            setData(prev => ({
+                ...prev,
+                balance: nuevoSaldo.toFixed(2)
+            }));
+        }
+    }, [data.invoice_amount, data.bill_payment]);
 
     const handleInputChange = (key, value) => {
         setData(prev => ({
@@ -43,27 +58,18 @@ const PaymentForm = () => {
         if (e) e.preventDefault();
         setProcessing(true);
         setErrors({});
-
-        // 1. Preparamos los datos para asegurar que los campos numéricos vacíos viajen como 0
+        
+        // Preparación de datos para la API
         const preparedData = {
             ...data,
-            bill_payment: (data.bill_payment === '' || data.bill_payment === null || data.bill_payment === undefined)
-                ? 0
-                : data.bill_payment,
-            balance: (data.balance === '' || data.balance === null || data.balance === undefined)
-                ? 0
-                : data.balance,
-            receipt_number: (data.receipt_number === '' || data.receipt_number === null || data.receipt_number === undefined)
-                ? 0
-                : data.receipt_number,
-            invoice_number: (data.invoice_number === '' || data.invoice_number === null || data.invoice_number === undefined)
-                ? 0
-                : data.invoice_number,
-            // Forzamos que el status viaje como entero (0 o 1) para evitar problemas de tipos en la DB
+            invoice_amount: parseFloat(data.invoice_amount) || 0,
+            bill_payment: parseFloat(data.bill_payment) || 0,
+            balance: parseFloat(data.balance) || 0,
+            receipt_number: data.receipt_number || 0,
+            invoice_number: data.invoice_number || 0,
             status: (data.status == 1 || data.status === true) ? 1 : 0
         };
 
-        // 2. Definimos la URL y el método según si es edición o creación
         const url = isEditing
             ? route('api.payments.update', data.id)
             : route('api.payments.store');
@@ -71,26 +77,18 @@ const PaymentForm = () => {
         const method = isEditing ? 'put' : 'post';
 
         try {
-            // 3. Enviamos 'preparedData' en lugar del estado original 'data'
             const response = await axios[method](url, preparedData);
-
             toast.success(response.data.message || 'Operación realizada con éxito');
-
-            // Cerramos el modal y limpiamos el formulario
             setShowFormModal(false);
-            reset();
-
-            // Refrescamos la lista de pagos si la función existe
+            reset(); 
             if (fetchPayments) fetchPayments();
-
         } catch (error) {
             if (error.response && error.response.status === 422) {
-                // Errores de validación de Laravel (PaymentRequest)
                 setErrors(error.response.data.errors);
                 toast.error('Revisa los errores en el formulario');
             } else {
                 console.error('Error en la operación:', error);
-                toast.error('Ocurrió un error inesperado al procesar el pago');
+                toast.error('Ocurrió un error inesperado');
             }
         } finally {
             setProcessing(false);
@@ -105,13 +103,12 @@ const PaymentForm = () => {
 
             <Modal show={showFormModal} onClose={() => setShowFormModal(false)} maxWidth="2xl">
                 <form onSubmit={submit} className="p-6">
-                    {/* 2. Título Dinámico */}
                     <h2 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">
                         {isEditing ? `Editando Pago: REC-${data.receipt_number}` : 'Nueva Liquidación de Pago'}
                     </h2>
 
                     <div className="space-y-4">
-                        {/* Cliente */}
+                        {/* Selección de Cliente */}
                         <div>
                             <InputLabel value="Cliente" />
                             <div
@@ -126,8 +123,8 @@ const PaymentForm = () => {
                             <InputError message={errors.customer_id} className="mt-1" />
                         </div>
 
+                        {/* Fila 1: Documentos */}
                         <div className="grid grid-cols-2 gap-4">
-                            {/* Recibo e Factura con type="number" para mayor seguridad */}
                             <div>
                                 <InputLabel htmlFor="receipt_number" value="N° Recibo" />
                                 <TextInput
@@ -150,8 +147,23 @@ const PaymentForm = () => {
                                 />
                                 <InputError message={errors.invoice_number} className="mt-1" />
                             </div>
+                        </div>
 
-                            {/* Montos */}
+                        {/* Fila 2: Importes Principales */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <InputLabel htmlFor="invoice_amount" value="Monto Total Factura ($)" />
+                                <TextInput
+                                    id="invoice_amount"
+                                    type="number"
+                                    step="0.01"
+                                    className="w-full mt-1 bg-blue-50 focus:ring-blue-200"
+                                    value={data.invoice_amount || ''}
+                                    onChange={e => handleInputChange('invoice_amount', e.target.value)}
+                                    placeholder="0.00"
+                                />
+                                <InputError message={errors.invoice_amount} className="mt-1" />
+                            </div>
                             <div>
                                 <InputLabel htmlFor="bill_payment" value="Monto Pagado ($)" />
                                 <TextInput
@@ -161,23 +173,27 @@ const PaymentForm = () => {
                                     className="w-full mt-1"
                                     value={data.bill_payment || ''}
                                     onChange={e => handleInputChange('bill_payment', e.target.value)}
+                                    placeholder="0.00"
                                 />
                                 <InputError message={errors.bill_payment} className="mt-1" />
                             </div>
+                        </div>
+
+                        {/* Fila 3: Saldo (Automático) y Fecha */}
+                        <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <InputLabel htmlFor="balance" value="Saldo Restante ($)" />
                                 <TextInput
                                     id="balance"
                                     type="number"
                                     step="0.01"
-                                    className="w-full mt-1"
+                                    className="w-full mt-1 font-bold text-red-600 bg-gray-100 cursor-not-allowed"
                                     value={data.balance || ''}
-                                    onChange={e => handleInputChange('balance', e.target.value)}
+                                    readOnly // Campo calculado, no editable
                                 />
+                                <p className="text-[10px] text-gray-400 mt-1 italic">Calculado automáticamente</p>
                                 <InputError message={errors.balance} className="mt-1" />
                             </div>
-
-                            {/* Fecha */}
                             <div>
                                 <InputLabel htmlFor="date" value="Fecha Documento" />
                                 <TextInput
@@ -189,14 +205,15 @@ const PaymentForm = () => {
                                 />
                                 <InputError message={errors.date} className="mt-1" />
                             </div>
+                        </div>
 
-                            {/* 3. Toggle Corregido para manejar 0/1 de la DB */}
-                            <div className="flex flex-col justify-center pt-5">
+                        {/* Estado y Observaciones */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                            <div className="pt-2">
                                 <label className="inline-flex items-center cursor-pointer">
                                     <input
                                         type="checkbox"
                                         className="sr-only peer"
-                                        // Comprobamos si es 1 o true
                                         checked={data.status == 1 || data.status === true}
                                         onChange={e => handleInputChange('status', e.target.checked ? 1 : 0)}
                                     />
@@ -205,7 +222,6 @@ const PaymentForm = () => {
                                         {data.status == 1 || data.status === true ? 'Registro Activo' : 'Registro Inactivo'}
                                     </span>
                                 </label>
-                                <InputError message={errors.status} className="mt-1" />
                             </div>
                         </div>
 
@@ -216,7 +232,7 @@ const PaymentForm = () => {
                                 className="resize-none w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 mt-1 h-20 text-sm"
                                 value={data.notes || ''}
                                 onChange={e => handleInputChange('notes', e.target.value)}
-                                placeholder="Detalles adicionales..."
+                                placeholder="Detalles sobre descuentos, retenciones o abonos..."
                             />
                             <InputError message={errors.notes} className="mt-1" />
                         </div>
@@ -226,7 +242,6 @@ const PaymentForm = () => {
                         <SecondaryButton type="button" onClick={() => setShowFormModal(false)}>
                             Cancelar
                         </SecondaryButton>
-                        {/* 4. Texto del Botón Dinámico */}
                         <PrimaryButton disabled={processing || !data.customer_id}>
                             {processing ? 'Procesando...' : (isEditing ? 'Guardar Cambios' : 'Confirmar Pago')}
                         </PrimaryButton>
@@ -236,4 +251,5 @@ const PaymentForm = () => {
         </>
     );
 };
+
 export default PaymentForm;

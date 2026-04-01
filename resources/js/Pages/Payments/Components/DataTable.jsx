@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react';
+import { useContext } from 'react';
 import React from 'react';
 import {
     Pencil, Trash2, Eye,
@@ -53,6 +53,7 @@ const DataTable = () => {
         { label: 'Cliente', align: 'left' },
         { label: 'ID Cliente', align: 'left' },
         { label: 'Fecha', align: 'left' },
+        { label: 'Monto Factura', align: 'right' }, // Nueva
         { label: 'Pago', align: 'right' },
         { label: 'Saldo', align: 'right' },
         { label: 'Estado', align: 'center' },
@@ -81,14 +82,14 @@ const DataTable = () => {
                         <tbody className="divide-y divide-gray-50">
                             {payments?.length === 0 ? (
                                 <tr>
-                                    <td colSpan={10} className="text-center py-14 text-gray-400">
+                                    <td colSpan={11} className="text-center py-14 text-gray-400">
                                         No hay registros que mostrar.
                                     </td>
                                 </tr>
                             ) : payments?.map(row => (
                                 <tr
                                     key={row.id}
-                                    className={`group transition-colors hover:bg-indigo-50/30 `}
+                                    className="group transition-colors hover:bg-indigo-50/30"
                                 >
                                     <td className="px-4 py-3 whitespace-nowrap">
                                         <span className="inline-flex items-center gap-1 font-mono font-bold text-indigo-600">
@@ -114,6 +115,10 @@ const DataTable = () => {
                                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
                                         {fmtDate(row.date)}
                                     </td>
+                                    {/* Celda Monto Factura */}
+                                    <td className="px-4 py-3 text-right font-medium text-blue-600 tabular-nums whitespace-nowrap bg-blue-50/20">
+                                        {fmt(row.invoice_amount)}
+                                    </td>
                                     <td className="px-4 py-3 text-right font-semibold text-gray-800 tabular-nums whitespace-nowrap">
                                         {fmt(row.bill_payment)}
                                     </td>
@@ -124,8 +129,7 @@ const DataTable = () => {
                                         <StatusBadge status={row.status} />
                                     </td>
 
-                                    {/* 👇 Columna Notas */}
-                                    <td className="px-4 py-3 max-w-[180px]">
+                                    <td className="px-4 py-3 max-w-[150px]">
                                         <span
                                             className="block truncate text-gray-500"
                                             title={row.notes}
@@ -134,10 +138,8 @@ const DataTable = () => {
                                         </span>
                                     </td>
 
-                                    {/* Reemplaza el bloque de la celda de acciones por este: */}
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-end gap-1">
-                                            {/* Botón Ver */}
                                             <button
                                                 title="Ver detalles"
                                                 className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 bg-gray-50 hover:text-indigo-600 hover:bg-indigo-100 transition-colors border border-gray-100"
@@ -145,7 +147,6 @@ const DataTable = () => {
                                                 <Eye size={14} />
                                             </button>
 
-                                            {/* Botón Editar */}
                                             <button
                                                 title="Editar registro"
                                                 onClick={() => handleUpdate(row.id)}
@@ -154,7 +155,6 @@ const DataTable = () => {
                                                 <Pencil size={14} />
                                             </button>
 
-                                            {/* Botón Eliminar */}
                                             <button
                                                 title="Eliminar registro"
                                                 onClick={() => handleDelete(row.id)}
@@ -172,8 +172,6 @@ const DataTable = () => {
 
                 <Pagination />
             </div>
-
-
         </>
     );
 };

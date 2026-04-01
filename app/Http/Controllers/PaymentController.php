@@ -62,34 +62,35 @@ class PaymentController extends Controller
         }
     }
 
-  public function show($id)
-{
-    try {
-    
-        $payment = Payment::with('customer')->find($id);
-        if (!$payment) {
+
+    public function show($id)
+    {
+        try {
+
+            $payment = Payment::with('customer')->find($id);
+            if (!$payment) {
+                return response()->json([
+                    'success' => null,
+                    'message' => null,
+                    'error' => "El registro no fue encontrado"
+                ], 404);
+            }
+
             return response()->json([
-                'success' =>null,
-                'message' => null,
-                'error' => "El registro no fue encontrado"
-            ], 404);
+                'success' => true,
+                'data' => $payment
+            ], 200);
+
+        } catch (\Exception $e) {
+
+            Log::error("Error crítico al leer el pago ID {$id}: " . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Ocurrió un error inesperado en el servidor.',
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'data' => $payment
-        ], 200);
-
-    } catch (\Exception $e) {
-
-        Log::error("Error crítico al leer el pago ID {$id}: " . $e->getMessage());
-        
-        return response()->json([
-            'success' => false,
-            'error' => 'Ocurrió un error inesperado en el servidor.',
-        ], 500);
     }
-}
 
     public function update(PaymentRequest $request, $id)
     {
@@ -178,47 +179,44 @@ class PaymentController extends Controller
     }
     public function exportPDF(Request $request)
     {
+        $params = $request->params ?? [];
         try {
             $query = Payment::query()
-                // Usamos leftJoin para no perder pagos si un cliente fue borrado (soft delete)
-                ->leftJoin('customers', 'payments.customer_id', '=', 'customers.id')
+                ->join('customers', 'payments.customer_id', '=', 'customers.id')
                 ->select([
-                    'payments.*', // Trae todo de pagos
-                    'customers.name as customer_name', // Solo el nombre del cliente
+                    'payments.*',
+                    'customers.name as customer_name',
+                    'customers.id as customer_id'
                 ])
-                // Filtro de búsqueda
-                ->when($request->filled('search'), function ($q) use ($request) {
-                    $q->where(function ($sub) use ($request) {
-                        $sub->where('payments.receipt_number', 'LIKE', "%{$request->search}%")
-                            ->orWhere('payments.invoice_number', 'LIKE', "%{$request->search}%");
-                    });
-                })
-                // Filtro por cliente
                 ->when(
-                    $request->filled('customer_id'),
-                    fn($q) => $q->where('payments.customer_id', $request->customer_id)
+                    !empty($params['search']),
+                    fn($q) => $q->where('payments.receipt_number', 'LIKE', "%{$params['search']}%")
                 )
-                // Rango de fechas (Optimizado para El Salvador)
-                ->when($request->filled(['from_date', 'to_date']), function ($q) use ($request) {
-                    $from = \Carbon\Carbon::parse($request->from_date)->startOfDay();
-                    $to = \Carbon\Carbon::parse($request->to_date)->endOfDay();
+                ->when(
+                    !empty($params['customer_id']),
+                    fn($q) => $q->where('payments.customer_id', $params['customer_id'])
+                )
+                ->when(!empty($params['from_date']) && !empty($params['to_date']), function ($q) use ($params) {
+                    $from = Carbon::parse($params['from_date'])->startOfDay();
+                    $to = Carbon::parse($params['to_date'])->endOfDay();
                     $q->whereBetween('payments.date', [$from, $to]);
                 })
-                // Filtro de estado
                 ->when(
-                    $request->filled('status') && $request->status !== 'all',
-                    fn($q) => $q->where('payments.status', $request->status === 'active' ? 1 : 0)
+                    !empty($params['status']) && $params['status'] !== 'all',
+                    fn($q) => $q->where('payments.status', $params['status'] === 'active' ? 1 : 0)
                 )
-                // Orden y Paginación
-                ->orderBy('payments.date', $request->input('order', 'desc'))
-                ->paginate($request->input('per_page', 10));
+                ->orderBy('payments.date', $params['order'] ?? 'desc')
+                ->get(); // 👈 aquí el cambio
 
-            return response()->json($query); // Paginate ya devuelve un objeto con 'data', 'current_page', etc.
 
-        } catch (\Exception $e) {
             return response()->json([
-                'error' => 'Error al procesar la solicitud',
-                'details' => $e->getMessage()
+                'data' => $query,
+            ]);
+        } catch (Exception $e) {
+            Log::error("Error al leer los pagos: " . $e->getMessage());
+
+            return response()->json([
+                'error' => "No se ha podido procesar la operación, contacte a su administrador" . $e->getMessage(),
             ], 500);
         }
     }

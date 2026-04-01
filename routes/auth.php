@@ -11,6 +11,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -78,6 +79,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/export-pdf', [PaymentController::class, 'exportPDF'])->name('api.payments.exportPDF');
         Route::delete('/{id}', [PaymentController::class, 'delete'])->name('api.payments.destroy');
     });
+      Route::prefix('products')->group(function () {
+        Route::post('/list', [ProductController::class, 'index'])->name('api.product.index');
+    
+    });
+
 
      Route::prefix('liquidations')->group(function () {
         

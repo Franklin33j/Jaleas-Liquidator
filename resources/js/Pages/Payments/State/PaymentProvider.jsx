@@ -15,6 +15,7 @@ const PaymentProvider = ({ children }) => {
         receipt_number: '',
         date: today,
         customer_id: '',
+        invoice_amount:'',
         customer_name: '',
         bill_payment: '',
         balance: '',
@@ -124,28 +125,26 @@ const PaymentProvider = ({ children }) => {
 
     const exportPdf = async () => {
         try {
-            // 1. Abrimos una pestaña vacía inmediatamente para evitar bloqueos de pop-ups
+
             const newTab = window.open();
             newTab.document.write("Generando reporte, por favor espere...");
 
-            // 2. Traemos los datos filtrados de Laravel (usando tus filtros actuales)
             const response = await axios.post(route('api.payments.exportPDF'), {
                 params: { ...filters, export: true } // 'filters' debe ser tu estado actual de búsqueda
             });
-
             const paymentsRes = response.data.data;
-            console.log(paymentsRes)
             if (payments.length === 0) {
                 newTab.close();
                 return toast.warning("No hay datos para exportar");
             }
 
             // 3. Generamos el BLOB del PDF usando el diseño
-            const blob = await pdf(<PaymentPDF payments={payments} appName={props.auth.appName} userName={props.auth.user.name} />).toBlob();
+            const blob = await pdf(<PaymentPDF payments={paymentsRes} appName={props.auth.appName} userName={props.auth.user.name} />).toBlob();
             const url = URL.createObjectURL(blob);
 
             // 4. Cargamos el PDF en la pestaña que ya abrimos
             newTab.location.href = url;
+
 
         } catch (error) {
             console.error(error);
@@ -180,6 +179,7 @@ const PaymentProvider = ({ children }) => {
                 customer_name: paymentData.customer ? paymentData.customer.name : '',
                 bill_payment: paymentData.bill_payment || '',
                 balance: paymentData.balance || '',
+                 invoice_amount: paymentData. invoice_amount || '',
                 invoice_number: paymentData.invoice_number || '',
                 // Convertimos el status a boolean/number según necesite tu toggle
                 status: paymentData.status === 1 || paymentData.status === true,

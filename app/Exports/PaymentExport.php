@@ -20,11 +20,11 @@ class PaymentExport implements FromCollection, WithHeadings, WithMapping, Should
     }
 
     /**
-    * @return \Illuminate\Support\Collection
-    */
+     * @return \Illuminate\Support\Collection
+     */
     public function collection()
     {
-   
+
         return Payment::query()
             ->join('customers', 'payments.customer_id', '=', 'customers.id')
             ->select([
@@ -60,7 +60,8 @@ class PaymentExport implements FromCollection, WithHeadings, WithMapping, Should
             'Cliente',
             'N° Recibo',
             'N° Factura',
-            'Monto Pagado',
+            'Monto Factura',
+            'Monto Abonado',
             'Saldo Restante',
             'Estado',
             'Notas'
@@ -79,6 +80,7 @@ class PaymentExport implements FromCollection, WithHeadings, WithMapping, Should
             $payment->customer_name,
             $payment->receipt_number,
             $payment->invoice_number,
+            number_format($payment->invoice_amount, 2),
             number_format($payment->bill_payment, 2),
             number_format($payment->balance, 2),
             $payment->status ? 'Activo' : 'Anulado',
