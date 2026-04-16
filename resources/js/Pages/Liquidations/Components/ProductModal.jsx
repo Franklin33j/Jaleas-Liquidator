@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import LiquidationContext from '../State/LiquidationContext';
 
-const ProductModal = ({ isOpen, onClose, onSelect }) => {
-    const [search, setSearch] = useState('');
+const ProductModal = ({ isOpen,  onSelect }) => {
+    const {search, setSearch, handleProductModal } = useContext(LiquidationContext)
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -14,7 +15,6 @@ const ProductModal = ({ isOpen, onClose, onSelect }) => {
             const response = await axios.post(route('api.product.index'), {
                 params: { searchTerm: term }
             });
-            console.log(response.data)
             // Accedemos a response.data.data porque el controlador devuelve un objeto con 'data'
             setProducts(response.data || []);
         } catch (error) {
@@ -31,7 +31,7 @@ const ProductModal = ({ isOpen, onClose, onSelect }) => {
 
         // Si el usuario borra todo, podemos traer la lista inicial o vaciarla
         if (search.trim() === '') {
-            fetchProducts(''); 
+            fetchProducts('');
             return;
         }
 
@@ -50,7 +50,7 @@ const ProductModal = ({ isOpen, onClose, onSelect }) => {
     return (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
             <div className="bg-white w-[400px] rounded shadow-lg p-4">
-                
+
                 <div className="flex justify-between items-center mb-3">
                     <h2 className="text-sm font-bold">Buscar Producto</h2>
                     {loading && <span className="text-[10px] text-blue-500 animate-pulse">Buscando...</span>}
@@ -71,7 +71,7 @@ const ProductModal = ({ isOpen, onClose, onSelect }) => {
                                 key={p.id}
                                 onClick={() => {
                                     onSelect(p);
-                                    onClose();
+                                    handleProductModal(true)
                                 }}
                                 className="p-2 text-sm hover:bg-blue-100 hover:text-blue-700 cursor-pointer border-b last:border-none transition-colors"
                             >
@@ -87,7 +87,7 @@ const ProductModal = ({ isOpen, onClose, onSelect }) => {
 
                 <div className="flex justify-end mt-4">
                     <button
-                        onClick={onClose}
+                        onClick={handleProductModal(true)}
                         className="px-4 py-1.5 text-xs font-medium bg-slate-200 hover:bg-slate-300 rounded transition-colors"
                     >
                         Cerrar

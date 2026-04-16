@@ -1,10 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useContext } from 'react';
 import { Plus, ArrowUpRight, ArrowDownLeft, X, MinusCircle, RotateCcw } from 'lucide-react';
 import ProductModal from './ProductModal';
+import LiquidationContext from '../State/LiquidationContext';
 
 const LiquidacionTable = () => {
 
     const inputRefs = useRef({});
+    const { } = useContext(LiquidationContext)
 
     const initialColumns = [
         { id: 'item', label: 'ITEM', type: 'fixed' },
@@ -46,7 +48,7 @@ const LiquidacionTable = () => {
 
         const newColumn = {
             id,
-            label: newMovName.toUpperCase(),
+            label: effect == 'add' ? 'CARGA ' + newMovName.toUpperCase() : 'DEVOLUCION ' + newMovName.toUpperCase(),
             type: 'mov',
             effect
         };
@@ -130,13 +132,17 @@ const LiquidacionTable = () => {
         }
     };
 
+    useEffect(() => {
+
+    }, [rows])
+
     return (
         <div className="w-full p-4 bg-white">
 
             {/* HEADER */}
             <div className="flex justify-between mb-4">
                 <button onClick={clearAll} className="text-xs text-red-500">
-                    <RotateCcw size={14}/> Reiniciar
+                    <RotateCcw size={14} /> Reiniciar
                 </button>
 
                 <div className="flex gap-2">
@@ -144,7 +150,7 @@ const LiquidacionTable = () => {
                     {/* MOVIMIENTO */}
                     <div className="relative">
                         <button onClick={() => setShowMovMenu(!showMovMenu)} className="text-xs border px-2 py-1 flex gap-1">
-                            <Plus size={12}/> Movimiento
+                            <Plus size={12} /> Movimiento
                         </button>
 
                         {showMovMenu && (
@@ -173,7 +179,6 @@ const LiquidacionTable = () => {
                     </button>
                 </div>
             </div>
-
             {/* TABLA */}
             <table className="w-full border">
                 <thead>
@@ -189,14 +194,11 @@ const LiquidacionTable = () => {
                         <th></th>
                     </tr>
                 </thead>
-
                 <tbody>
                     {rows.map((row, rowIndex) => (
                         <tr key={row.id}>
-
                             {columns.map((col, colIndex) => (
                                 <td key={col.id} className="border">
-
                                     {col.id === 'item' ? (
                                         row.item
                                     ) : col.id === 'producto' ? (
@@ -230,9 +232,7 @@ const LiquidacionTable = () => {
 
                                 </td>
                             ))}
-
                             <td>{calculateTotal(row)}</td>
-
                             <td>
                                 <input
                                     className="w-full text-center"
@@ -246,44 +246,33 @@ const LiquidacionTable = () => {
                                     }
                                 />
                             </td>
-
                             <td className="font-bold text-green-600">
                                 {calculateVentas(row)}
                             </td>
-
                             <td>
                                 <button onClick={() => removeRow(row.id)}>
-                                    <MinusCircle size={14}/>
+                                    <MinusCircle size={14} />
                                 </button>
                             </td>
-
                         </tr>
                     ))}
-
                     {/* 🔥 TOTALES */}
                     {rows.length > 0 && (
                         <tr className="bg-gray-100 font-bold">
-
                             <td colSpan={2}>Totales</td>
-
                             {columns.slice(2).map(col => (
                                 <td key={col.id}>{getTotal(col.id)}</td>
                             ))}
-
                             <td></td>
-
                             <td>{getTotal('retorno')}</td>
-
                             <td className="text-green-700 text-lg">
                                 {totalVentasGeneral()}
                             </td>
-
                             <td></td>
                         </tr>
                     )}
                 </tbody>
             </table>
-
             {/* MODAL */}
             <ProductModal
                 isOpen={showProductModal}
@@ -293,5 +282,4 @@ const LiquidacionTable = () => {
         </div>
     );
 };
-
 export default LiquidacionTable;

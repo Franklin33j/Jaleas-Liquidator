@@ -2,9 +2,10 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head } from "@inertiajs/react";
 import DynamicTable from "./Components/DynamicTable";
 import TablaVentasEfectivo from "./Components/TablaVentasEfectivo";
+import LiquidationProvider from "./State/LiquidationProvider";
 
 const LiquidationIndex = () => {
- return (
+    return (
         <AuthenticatedLayout
         >
             <Head title="Dashboard" />
@@ -13,8 +14,11 @@ const LiquidationIndex = () => {
                 <div className="mx-auto max-w-[90%] sm:px-6 lg:px-8">
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <div className="p-6 text-gray-900">
-                          <DynamicTable></DynamicTable>
-                          <TablaVentasEfectivo></TablaVentasEfectivo>
+                            <LiquidationProvider>
+                                <DynamicTable></DynamicTable>
+                                <TablaVentasEfectivo></TablaVentasEfectivo>
+                            </LiquidationProvider>
+
                         </div>
                     </div>
                 </div>
