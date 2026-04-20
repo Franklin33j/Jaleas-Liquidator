@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
-import { Plus, ArrowUpRight, ArrowDownLeft, X, MinusCircle, RotateCcw } from 'lucide-react';
+import { Plus, ArrowUpRight, ArrowDownLeft, X, MinusCircle, RotateCcw, Save, FolderOpen } from 'lucide-react';
 import ProductModal from './ProductModal';
 import LiquidationContext from '../State/LiquidationContext';
 
 const LiquidacionTable = () => {
 
     const inputRefs = useRef({});
-    const { } = useContext(LiquidationContext)
+    const { openProductModal, selectedRowId } = useContext(LiquidationContext)
 
     const initialColumns = [
         { id: 'item', label: 'ITEM', type: 'fixed' },
@@ -20,8 +20,10 @@ const LiquidacionTable = () => {
     const [showMovMenu, setShowMovMenu] = useState(false);
     const [newMovName, setNewMovName] = useState('');
 
-    const [showProductModal, setShowProductModal] = useState(false);
-    const [selectedRowId, setSelectedRowId] = useState(null);
+    const [liquidationName, setLiquidationName] = useState('');
+    const [showSaveDialog, setShowSaveDialog] = useState(false);
+    const [showLoadDialog, setShowLoadDialog] = useState(false);
+    const [savedLiquidations, setSavedLiquidations] = useState([]);
 
     // -------- LIMPIAR --------
     const clearAll = () => {
@@ -35,7 +37,7 @@ const LiquidacionTable = () => {
     const handleSelectProduct = (product) => {
         setRows(rows.map(r =>
             r.id === selectedRowId
-                ? { ...r, producto: product.name }
+                ? { ...r, producto: product.name, productId: product.id }
                 : r
         ));
     };
@@ -133,8 +135,28 @@ const LiquidacionTable = () => {
     };
 
     useEffect(() => {
+        const productosSeleccionados = rows.filter(r => r.producto).map(r => {
+            const movimientos = columns
+                .filter(col => col.type === 'mov')
+                .map(col => ({
+                    nombre: col.label,
+                    tipo: col.effect === 'add' ? 'entrada' : 'salida',
+                    valor: Number(r[col.id]) || 0
+                }));
 
-    }, [rows])
+            return {
+                item: r.item,
+                productId: r.productId,
+                producto: r.producto,
+                inventarioAnterior: Number(r.inv_ant) || 0,
+                retorno: Number(r.retorno) || 0,
+                movimientos: movimientos,
+                totalMovimientos: calculateTotal(r),
+                ventas: calculateVentas(r)
+            };
+        });
+        console.log('Productos seleccionados:', productosSeleccionados);
+    }, [rows, columns])
 
     return (
         <div className="w-full p-4 bg-white">
@@ -206,10 +228,7 @@ const LiquidacionTable = () => {
                                             className="w-[220px] p-1 cursor-pointer"
                                             value={row.producto}
                                             readOnly
-                                            onClick={() => {
-                                                setSelectedRowId(row.id);
-                                                setShowProductModal(true);
-                                            }}
+                                            onClick={() => openProductModal(row.id)}
                                         />
                                     ) : (
                                         <input
@@ -275,8 +294,6 @@ const LiquidacionTable = () => {
             </table>
             {/* MODAL */}
             <ProductModal
-                isOpen={showProductModal}
-                onClose={() => setShowProductModal(false)}
                 onSelect={handleSelectProduct}
             />
         </div>

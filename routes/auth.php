@@ -10,6 +10,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\MovementController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
@@ -85,8 +86,7 @@ Route::middleware('auth')->group(function () {
     });
 
 
-     Route::prefix('liquidations')->group(function () {
-        
-
+    Route::prefix('movements')->group(function () {
+ Route::post('/', [MovementController::class, 'store'])->name('api.movements.store');
     });
 });

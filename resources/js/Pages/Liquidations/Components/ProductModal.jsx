@@ -2,8 +2,8 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import LiquidationContext from '../State/LiquidationContext';
 
-const ProductModal = ({ isOpen,  onSelect }) => {
-    const {search, setSearch, handleProductModal } = useContext(LiquidationContext)
+const ProductModal = ({ onSelect }) => {
+    const { search, setSearch, showProductModal, closeProductModal } = useContext(LiquidationContext)
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -27,7 +27,7 @@ const ProductModal = ({ isOpen,  onSelect }) => {
 
     // Lógica del Debounce (Esperar a que deje de escribir)
     useEffect(() => {
-        if (!isOpen) return;
+        if (!showProductModal) return;
 
         // Si el usuario borra todo, podemos traer la lista inicial o vaciarla
         if (search.trim() === '') {
@@ -43,9 +43,9 @@ const ProductModal = ({ isOpen,  onSelect }) => {
         // LIMPIEZA: Si el usuario escribe otra letra antes de los 500ms,
         // este return cancela el temporizador anterior y empieza uno nuevo.
         return () => clearTimeout(timeoutId);
-    }, [search, isOpen]);
+    }, [search, showProductModal]);
 
-    if (!isOpen) return null;
+    if (!showProductModal) return null;
 
     return (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
@@ -71,7 +71,7 @@ const ProductModal = ({ isOpen,  onSelect }) => {
                                 key={p.id}
                                 onClick={() => {
                                     onSelect(p);
-                                    handleProductModal(true)
+                                    closeProductModal();
                                 }}
                                 className="p-2 text-sm hover:bg-blue-100 hover:text-blue-700 cursor-pointer border-b last:border-none transition-colors"
                             >
@@ -87,7 +87,7 @@ const ProductModal = ({ isOpen,  onSelect }) => {
 
                 <div className="flex justify-end mt-4">
                     <button
-                        onClick={handleProductModal(true)}
+                        onClick={() => closeProductModal()}
                         className="px-4 py-1.5 text-xs font-medium bg-slate-200 hover:bg-slate-300 rounded transition-colors"
                     >
                         Cerrar

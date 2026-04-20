@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
 
 export default function GenerateExcel() {
-  const [cargando, setCargando] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const procesarArchivo = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    setCargando(true);
+    setLoading(true);
     const reader = new FileReader();
 
     reader.onload = (event) => {
@@ -92,22 +92,22 @@ export default function GenerateExcel() {
       </p>
 
       <label style={{
-        backgroundColor: cargando ? '#94a3b8' : '#4f46e5',
+        backgroundColor: loading ? '#94a3b8' : '#4f46e5',
         color: 'white',
         padding: '14px 28px',
         borderRadius: '10px',
         fontWeight: 'bold',
-        cursor: cargando ? 'not-allowed' : 'pointer',
+        cursor: loading ? 'not-allowed' : 'pointer',
         display: 'inline-block',
         transition: 'all 0.2s'
       }}>
-        {cargando ? 'LIMPIANDO DATOS...' : 'SUBIR EXCEL'}
+        {loading ? 'LIMPIANDO DATOS...' : 'SUBIR EXCEL'}
         <input 
           type="file" 
           accept=".xlsx, .xls" 
           onChange={procesarArchivo} 
           style={{ display: 'none' }}
-          disabled={cargando}
+          disabled={loading}
         />
       </label>
 

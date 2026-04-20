@@ -60,6 +60,18 @@ export default function AuthenticatedLayout({  children }) {
                                 >
                                     Liquidaciones
                                 </NavLink>
+                                 <NavLink
+                                    href={route('movements')}
+                                    active={route().current('movements')}
+                                >
+                                    Movimientos
+                                </NavLink>
+                                  <NavLink
+                                    href={route('income')}
+                                    active={route().current('income')}
+                                >
+                                    Facturacion y Cobros
+                                </NavLink>
                             </div>
                         </div>
 

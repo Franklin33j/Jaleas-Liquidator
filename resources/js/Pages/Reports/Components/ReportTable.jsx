@@ -16,6 +16,10 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+const fmt = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const calcGravado = (total) => total / 1.13;
+const calcIVA = (total) => total - total / 1.13;
+
 const ReportTable = () => {
     const [data, setData] = useState([]);
     const [filterText, setFilterText] = useState('');
@@ -23,11 +27,8 @@ const ReportTable = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [editFormData, setEditFormData] = useState({});
-    
-    // NUEVO: Estado para la fecha manual del reporte (por defecto hoy)
     const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
 
-    // Estado para el nuevo registro manual
     const [newRow, setNewRow] = useState({
         "Tipo Documento": "Factura",
         "No.": "",
@@ -143,49 +144,138 @@ const ReportTable = () => {
     });
 
     const totalVentaFiltrada = filteredData.reduce((acc, curr) => acc + curr.Total, 0);
+    const totalGravado = calcGravado(totalVentaFiltrada);
+    const totalIVA = calcIVA(totalVentaFiltrada);
 
-    // --- VISTA PREVIA PDF CON FECHA MANUAL ---
+    // --- VISTA PREVIA PDF ---
     const previewPDF = () => {
         const doc = new jsPDF('l', 'mm', 'a4');
-        
-        // Formatear la fecha del reporte de YYYY-MM-DD a DD/MM/YYYY
-        const dateParts = reportDate.split("-");
-        const formattedReportDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : reportDate;
 
-        doc.setFontSize(18);
-        doc.text('JALEAS DEL PINO SA DE CV', 14, 15);
-        doc.setFontSize(11);
-        doc.text(`Vendedor: ${selectedVendedor || 'TODOS'} | Fecha Reporte: ${formattedReportDate}`, 14, 25);
-        
+        const dateParts = reportDate.split("-");
+        const formattedReportDate = dateParts.length === 3
+            ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`
+            : reportDate;
+
+        // ── Encabezado ──
+        doc.setFontSize(20);
+        doc.setFont(undefined, 'bold');
+        doc.text('JALEAS DEL PINO SA DE CV', 14, 16);
+
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Vendedor: ${selectedVendedor || 'TODOS'}`, 14, 24);
+        doc.text(`Fecha de reporte: ${formattedReportDate}`, 14, 30);
+
+        // línea separadora
+        doc.setDrawColor(180, 180, 180);
+        doc.line(14, 33, 283, 33);
+
+        // ── Tablas ──
+        const boxY = 37;
+        // ── Tablas por término ──
         const grupos = filteredData.reduce((acc, item) => {
             const t = item["Término"];
             if (!acc[t]) acc[t] = [];
             acc[t].push(item);
             return acc;
         }, {});
-        
-        let currentY = 35;
+
+        let currentY = boxY;
+
         Object.keys(grupos).sort().forEach((termino) => {
             const itemsGrupo = grupos[termino];
             const subtotal = itemsGrupo.reduce((s, i) => s + i.Total, 0);
-            doc.setFontSize(12);
+            const subGrav = calcGravado(subtotal);
+            const subIVA = calcIVA(subtotal);
+
+            // etiqueta de término — texto plano sin caracteres especiales
+            const terminoLabel = termino === 'CREDITO' ? 'CREDITO' : termino;
+            doc.setFontSize(9);
             doc.setFont(undefined, 'bold');
-            doc.text(`TÉRMINO: ${termino}`, 14, currentY);
+            doc.setTextColor(30, 58, 95);
+            doc.text(`TERMINO: ${terminoLabel}`, 14, currentY + 1);
+            doc.setTextColor(0, 0, 0);
+
             autoTable(doc, {
-                startY: currentY + 2,
-                head: [["Tipo Doc.", "No.", "Fecha", "ID", "Cliente", "Vendedor", "Total"]],
-                body: itemsGrupo.map(item => [item["Tipo Documento"], item["No."], item["Fecha"], item["ID"], item["Cliente"], item["Vendedor"], `$${item["Total"].toLocaleString('en-US', { minimumFractionDigits: 2 })}`]),
+                startY: currentY + 4,
+                head: [[
+                    'Tipo Doc.',
+                    'No.',
+                    'Fecha',
+                    'ID',
+                    'Cliente',
+                    { content: 'Gravado', styles: { halign: 'right' } },
+                    { content: 'IVA 13%', styles: { halign: 'right' } },
+                    { content: 'Total', styles: { halign: 'right' } },
+                ]],
+                body: itemsGrupo.map(item => [
+                    item["Tipo Documento"],
+                    item["No."],
+                    item["Fecha"],
+                    item["ID"],
+                    item["Cliente"],
+                    { content: `$${fmt(calcGravado(item.Total))}`, styles: { halign: 'right' } },
+                    { content: `$${fmt(calcIVA(item.Total))}`, styles: { halign: 'right' } },
+                    { content: `$${fmt(item.Total)}`, styles: { halign: 'right' } },
+                ]),
+                foot: [[
+                    {
+                        content: `SUBTOTAL ${terminoLabel}`,
+                        colSpan: 5,
+                        styles: { halign: 'right', fontStyle: 'bold', fillColor: [220, 230, 245], textColor: [30, 58, 95] }
+                    },
+                    { content: `$${fmt(subGrav)}`, styles: { halign: 'right', fontStyle: 'bold', fillColor: [220, 230, 245], textColor: [30, 58, 95] } },
+                    { content: `$${fmt(subIVA)}`, styles: { halign: 'right', fontStyle: 'bold', fillColor: [220, 230, 245], textColor: [30, 58, 95] } },
+                    { content: `$${fmt(subtotal)}`, styles: { halign: 'right', fontStyle: 'bold', fillColor: [220, 230, 245], textColor: [30, 58, 95] } },
+                ]],
                 theme: 'grid',
-                headStyles: { fillColor: [44, 62, 80] },
-                styles: { fontSize: 8 },
-                columnStyles: { 6: { halign: 'right' } },
-                foot: [[{ content: `SUBTOTAL ${termino}:`, colSpan: 6, styles: { halign: 'right', fontStyle: 'bold' } }, { content: `$${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, styles: { halign: 'right', fontStyle: 'bold' } }]],
+                headStyles: {
+                    fillColor: [30, 58, 95],
+                    textColor: [255, 255, 255],
+                    fontSize: 7,
+                    fontStyle: 'bold',
+                    cellPadding: 2,
+                },
+                bodyStyles: {
+                    fontSize: 7,
+                    cellPadding: 1.5,
+                    textColor: [40, 40, 40],
+                },
+                alternateRowStyles: {
+                    fillColor: [248, 250, 255],
+                },
+                footStyles: {
+                    fontSize: 7.5,
+                    cellPadding: 2,
+                },
+                columnStyles: {
+                    0: { cellWidth: 28 },
+                    1: { cellWidth: 18 },
+                    2: { cellWidth: 22 },
+                    3: { cellWidth: 22 },
+                    4: { cellWidth: 'auto' },
+                    5: { cellWidth: 28 },
+                    6: { cellWidth: 24 },
+                    7: { cellWidth: 28 },
+                },
+                showFoot: 'lastPage',
             });
-            currentY = doc.lastAutoTable.finalY + 12;
+
+            currentY = doc.lastAutoTable.finalY + 10;
         });
-        
-        doc.setFontSize(14);
-        doc.text(`TOTAL GENERAL: $${totalVentaFiltrada.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 14, currentY);
+
+        // ── Pie de página: total general ──
+        doc.setFillColor(30, 58, 95);
+        doc.roundedRect(14, currentY, 269, 14, 2, 2, 'F');
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(255, 255, 255);
+        doc.text('TOTAL GENERAL:', 18, currentY + 9);
+        doc.text(`$${fmt(totalVentaFiltrada)}`, 70, currentY + 9);
+        doc.text(`Gravado: $${fmt(totalGravado)}`, 130, currentY + 9);
+        doc.text(`IVA 13%: $${fmt(totalIVA)}`, 200, currentY + 9);
+        doc.setTextColor(0, 0, 0);
+
         window.open(doc.output('bloburl'), '_blank');
     };
 
@@ -201,7 +291,6 @@ const ReportTable = () => {
                         </div>
 
                         <div className="flex flex-wrap gap-2 justify-center items-end">
-                            {/* Selector Vendedor */}
                             <div className="flex flex-col">
                                 <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Vendedor</label>
                                 <select className="border p-2 rounded-lg font-bold bg-gray-50 text-indigo-900 h-9" value={selectedVendedor} onChange={(e) => setSelectedVendedor(e.target.value)}>
@@ -210,14 +299,13 @@ const ReportTable = () => {
                                 </select>
                             </div>
 
-                            {/* Selector Fecha Reporte (Manual) */}
                             <div className="flex flex-col">
                                 <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Fecha Venta</label>
-                                <input 
-                                    type="date" 
-                                    className="border p-2 rounded-lg font-bold bg-gray-50 text-indigo-900 h-9" 
-                                    value={reportDate} 
-                                    onChange={(e) => setReportDate(e.target.value)} 
+                                <input
+                                    type="date"
+                                    className="border p-2 rounded-lg font-bold bg-gray-50 text-indigo-900 h-9"
+                                    value={reportDate}
+                                    onChange={(e) => setReportDate(e.target.value)}
                                 />
                             </div>
 
@@ -241,6 +329,28 @@ const ReportTable = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* TOTALES DEBAJO DEL HEADER */}
+                {filteredData.length > 0 && (
+                    <div className="bg-indigo-950 px-6 py-3 flex flex-wrap gap-8 items-center">
+                        <div className="flex flex-col">
+                            <span className="text-[9px] font-bold text-indigo-300 uppercase tracking-widest">Total General</span>
+                            <span className="text-lg font-black text-white">${fmt(totalVentaFiltrada)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[9px] font-bold text-blue-300 uppercase tracking-widest">Gravado</span>
+                            <span className="text-lg font-black text-blue-300">${fmt(totalGravado)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[9px] font-bold text-purple-300 uppercase tracking-widest">IVA 13%</span>
+                            <span className="text-lg font-black text-purple-300">${fmt(totalIVA)}</span>
+                        </div>
+                        <div className="ml-auto flex flex-col items-end">
+                            <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">Registros</span>
+                            <span className="text-lg font-black text-white">{filteredData.length}</span>
+                        </div>
+                    </div>
+                )}
 
                 {/* TABLE SECTION */}
                 <div className="bg-white shadow-xl overflow-hidden rounded-b-xl border border-gray-200">
@@ -286,7 +396,7 @@ const ReportTable = () => {
                                                 <td className="px-4 py-3 font-mono">{row["No."]}</td>
                                                 <td className="px-4 py-3 text-gray-500">{row["Fecha"]}</td>
                                                 <td className="px-4 py-3 font-semibold text-gray-800 uppercase">{row["Cliente"]}</td>
-                                                <td className="px-4 py-3 font-black text-emerald-700 text-right">$ {row["Total"].toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                                                <td className="px-4 py-3 font-black text-emerald-700 text-right">$ {fmt(row["Total"])}</td>
                                                 <td className="px-4 py-3 text-gray-500 font-bold uppercase">{row["Vendedor"]}</td>
                                                 <td className="px-4 py-3">
                                                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${row["Término"] === 'CONTADO' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>

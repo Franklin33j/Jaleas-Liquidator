@@ -1,8 +1,8 @@
 <?php
 
+use App\Http\Controllers\MovementController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -17,6 +17,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
 Route::get('/payments', [PaymentController::class, 'paymentView'])->name('payments')->middleware('auth');
+Route::get('/movements', [MovementController::class, 'movementView'])->name('movements')->middleware('auth');
 Route::get('/operations', function () {
     return Inertia::render('Operations/OperationIndex');
 })->name('operations')->middleware('auth');
@@ -28,6 +29,10 @@ Route::get('/liquidations', function () {
     return Inertia::render('Liquidations/LiquidationIndex');
 })->name('liquidations')->middleware('auth');
 
+
+Route::get('/Income', function () {
+    return Inertia::render('Income/IncomeIndex');
+})->name('income')->middleware('auth');
 Route::get('/customersr', function () {
     return Inertia::render('Customers/CustomerIndex');
 })->name('customersr')->middleware('auth');
