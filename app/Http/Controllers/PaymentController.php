@@ -191,7 +191,7 @@ class PaymentController extends Controller
                     'customers.name as customer_name',
                     'customers.id as customer_id'
                 ])
-                 ->when(
+                ->when(
                     !empty($params['invoice_number']),
                     fn($q) => $q->where('payments.invoice_number', 'LIKE', "%{$params['invoice_number']}%")
                 )

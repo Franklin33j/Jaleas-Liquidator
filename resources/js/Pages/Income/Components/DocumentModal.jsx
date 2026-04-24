@@ -2,10 +2,10 @@ import { useState, useMemo, useEffect } from "react";
 
 // ── Vendedores ────────────────────────────────────────────────────────────────
 const SELLERS = [
-    { name: "Jorge Rivera",         seller_code: "SELLER001" },
-    { name: "Marvin Perez",         seller_code: "SELLER002" },
-    { name: "Luis Chavez",          seller_code: "SELLER003" },
-    { name: "Edgar Cornejo",        seller_code: "SELLER004" },
+    { name: "Jorge Rivera", seller_code: "SELLER001" },
+    { name: "Marvin Perez", seller_code: "SELLER002" },
+    { name: "Luis Chavez", seller_code: "SELLER003" },
+    { name: "Edgar Cornejo", seller_code: "SELLER004" },
     { name: "Yamileth Quintanilla", seller_code: "SELLER005" },
 ];
 
@@ -20,43 +20,43 @@ const Field = ({ label, children }) => (
 
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function DocumentManager() {
-    const [docs, setDocs]   = useState([]);
-    const [open, setOpen]   = useState(false);
-    const [tipo, setTipo]   = useState("Venta");
+    const [docs, setDocs] = useState([]);
+    const [open, setOpen] = useState(false);
+    const [tipo, setTipo] = useState("Venta");
 
     // Cabecera global del documento
-    const [fechaDoc,  setFechaDoc]  = useState(TODAY);
-    const [vendedor,  setVendedor]  = useState(SELLERS[0].seller_code);
+    const [fechaDoc, setFechaDoc] = useState(TODAY);
+    const [vendedor, setVendedor] = useState(SELLERS[0].seller_code);
 
     // VENTAS
-    const [cliente,       setCliente]       = useState("");
+    const [cliente, setCliente] = useState("");
     const [numeroFactura, setNumeroFactura] = useState("");
-    const [condicion,     setCondicion]     = useState("Contado");
+    const [condicion, setCondicion] = useState("Contado");
     const [cantidadInput, setCantidadInput] = useState("");
-    const [valorFactura,  setValorFactura]  = useState("");
-    const [reciboVenta,   setReciboVenta]   = useState("");
+    const [valorFactura, setValorFactura] = useState("");
+    const [reciboVenta, setReciboVenta] = useState("");
 
     // COBROS
     const [clienteCobro, setClienteCobro] = useState("");
-    const [montoCobro,   setMontoCobro]   = useState("");
-    const [recibo,       setRecibo]       = useState("");
-    const [facturaRef,   setFacturaRef]   = useState("");
+    const [montoCobro, setMontoCobro] = useState("");
+    const [recibo, setRecibo] = useState("");
+    const [facturaRef, setFacturaRef] = useState("");
 
     // INGRESOS
-    const [tipoIngreso,  setTipoIngreso]  = useState("Efectivo");
-    const [banco,        setBanco]        = useState("");
-    const [referencia,   setReferencia]   = useState("");
+    const [tipoIngreso, setTipoIngreso] = useState("Efectivo");
+    const [banco, setBanco] = useState("");
+    const [referencia, setReferencia] = useState("");
     const [montoIngreso, setMontoIngreso] = useState("");
-    const [obsIngreso,   setObsIngreso]   = useState("");
+    const [obsIngreso, setObsIngreso] = useState("");
     const [fechaIngreso, setFechaIngreso] = useState(TODAY);
 
     // OBSERVACIONES GENERALES
     const [obsGenerales, setObsGenerales] = useState("");
 
     // Estado botones
-    const [sendStatus,    setSendStatus]    = useState(null); // null | "sending" | "ok" | "error"
+    const [sendStatus, setSendStatus] = useState(null); // null | "sending" | "ok" | "error"
     const [processStatus, setProcessStatus] = useState(null); // null | "sending" | "ok" | "error"
-    const [jsonPreview,   setJsonPreview]   = useState(null);
+    const [jsonPreview, setJsonPreview] = useState(null);
 
     // ── F1 abre modal ──────────────────────────────────────────────────────────
     useEffect(() => {
@@ -88,10 +88,21 @@ export default function DocumentManager() {
         setMontoIngreso(""); setObsIngreso("");
         setFechaIngreso(TODAY);
     };
+    function generateUUID() {
+        if (crypto.randomUUID) {
+            return crypto.randomUUID();
+        }
+        // Fallback for HTTP or older browsers
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
 
     // ── Guardar registro ───────────────────────────────────────────────────────
     const handleGuardar = () => {
-        const id = crypto.randomUUID();
+        const id = generateUUID();
         if (tipo === "Venta") {
             setDocs(p => [...p, {
                 id, tipo: "Venta", cliente, numeroFactura, condicion,
@@ -120,17 +131,17 @@ export default function DocumentManager() {
     const handleEliminar = (id) => setDocs(p => p.filter(d => d.id !== id));
 
     // ── Totales ────────────────────────────────────────────────────────────────
-    const ventas   = docs.filter(d => d.tipo === "Venta");
-    const cobros   = docs.filter(d => d.tipo === "Cobro");
+    const ventas = docs.filter(d => d.tipo === "Venta");
+    const cobros = docs.filter(d => d.tipo === "Cobro");
     const ingresos = docs.filter(d => d.tipo === "Ingreso");
 
-    const totalVentas   = useMemo(() => ventas.reduce((a,b)=>a+b.monto,0),   [ventas]);
-    const totalContado  = useMemo(() => ventas.filter(v=>v.condicion==="Contado").reduce((a,b)=>a+b.monto,0), [ventas]);
-    const totalCredito  = useMemo(() => ventas.filter(v=>v.condicion==="Crédito").reduce((a,b)=>a+b.monto,0), [ventas]);
-    const totalCobros   = useMemo(() => cobros.reduce((a,b)=>a+b.monto,0),   [cobros]);
-    const totalIngresos = useMemo(() => ingresos.reduce((a,b)=>a+b.monto,0), [ingresos]);
+    const totalVentas = useMemo(() => ventas.reduce((a, b) => a + b.monto, 0), [ventas]);
+    const totalContado = useMemo(() => ventas.filter(v => v.condicion === "Contado").reduce((a, b) => a + b.monto, 0), [ventas]);
+    const totalCredito = useMemo(() => ventas.filter(v => v.condicion === "Crédito").reduce((a, b) => a + b.monto, 0), [ventas]);
+    const totalCobros = useMemo(() => cobros.reduce((a, b) => a + b.monto, 0), [cobros]);
+    const totalIngresos = useMemo(() => ingresos.reduce((a, b) => a + b.monto, 0), [ingresos]);
 
-    const esperadoEnCaja   = totalContado + totalCobros;
+    const esperadoEnCaja = totalContado + totalCobros;
     const diferenciaCuadre = totalIngresos - esperadoEnCaja;
     const hayDatos = docs.length > 0;
 
@@ -139,7 +150,7 @@ export default function DocumentManager() {
         const seller = sellerObj(vendedor);
         return {
             document: {
-                fecha:  fechaDoc,
+                fecha: fechaDoc,
                 seller: { name: seller.name, seller_code: seller.seller_code },
                 observaciones_generales: obsGenerales,
             },
@@ -163,17 +174,17 @@ export default function DocumentManager() {
                 observaciones: i.obs || null,
             })),
             resumen: {
-                total_ventas:      totalVentas,
-                total_contado:     totalContado,
-                total_credito:     totalCredito,
-                total_cobros:      totalCobros,
-                total_ingresos:    totalIngresos,
-                esperado_en_caja:  esperadoEnCaja,
+                total_ventas: totalVentas,
+                total_contado: totalContado,
+                total_credito: totalCredito,
+                total_cobros: totalCobros,
+                total_ingresos: totalIngresos,
+                esperado_en_caja: esperadoEnCaja,
                 diferencia_cuadre: diferenciaCuadre,
                 estado_cuadre:
                     diferenciaCuadre === 0 ? "exacto"
-                    : diferenciaCuadre > 0 ? "sobrante"
-                    : "faltante",
+                        : diferenciaCuadre > 0 ? "sobrante"
+                            : "faltante",
             },
         };
     };
@@ -222,11 +233,11 @@ export default function DocumentManager() {
                 </div>
                 <div className="p-4 grid grid-cols-2 gap-4">
                     <Field label="Fecha">
-                        <input type="date" value={fechaDoc} onChange={e=>setFechaDoc(e.target.value)}
-                            className="border border-gray-300 p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 bg-white"/>
+                        <input type="date" value={fechaDoc} onChange={e => setFechaDoc(e.target.value)}
+                            className="border border-gray-300 p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 bg-white" />
                     </Field>
                     <Field label="Vendedor">
-                        <select value={vendedor} onChange={e=>setVendedor(e.target.value)}
+                        <select value={vendedor} onChange={e => setVendedor(e.target.value)}
                             className="border border-gray-300 p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 bg-white">
                             {SELLERS.map(s => (
                                 <option key={s.seller_code} value={s.seller_code}>
@@ -240,7 +251,7 @@ export default function DocumentManager() {
 
             {/* ── BOTÓN NUEVO + hint F1 ── */}
             <div className="flex items-center gap-3">
-                <button onClick={()=>setOpen(true)}
+                <button onClick={() => setOpen(true)}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
                     + Nuevo Registro
                 </button>
@@ -258,16 +269,15 @@ export default function DocumentManager() {
 
                         <Field label="Tipo de documento">
                             <div className="flex gap-2">
-                                {["Venta","Cobro","Ingreso"].map(t => (
-                                    <button key={t} onClick={()=>setTipo(t)}
-                                        className={`flex-1 p-2 rounded-lg font-medium transition-colors ${
-                                            tipo===t
-                                                ? t==="Venta"  ? "bg-green-500 text-white"
-                                                : t==="Cobro"  ? "bg-blue-500 text-white"
-                                                : "bg-purple-500 text-white"
-                                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                        }`}>
-                                        {t==="Venta"?"Ventas":t==="Cobro"?"Cobros":"Ingresos"}
+                                {["Venta", "Cobro", "Ingreso"].map(t => (
+                                    <button key={t} onClick={() => setTipo(t)}
+                                        className={`flex-1 p-2 rounded-lg font-medium transition-colors ${tipo === t
+                                            ? t === "Venta" ? "bg-green-500 text-white"
+                                                : t === "Cobro" ? "bg-blue-500 text-white"
+                                                    : "bg-purple-500 text-white"
+                                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                            }`}>
+                                        {t === "Venta" ? "Ventas" : t === "Cobro" ? "Cobros" : "Ingresos"}
                                     </button>
                                 ))}
                             </div>
@@ -277,35 +287,35 @@ export default function DocumentManager() {
                         {tipo === "Venta" && (
                             <div className="space-y-3 border-t pt-4">
                                 <Field label="Cliente">
-                                    <input placeholder="Nombre del cliente" value={cliente} onChange={e=>setCliente(e.target.value)}
-                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"/>
+                                    <input placeholder="Nombre del cliente" value={cliente} onChange={e => setCliente(e.target.value)}
+                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400" />
                                 </Field>
                                 <Field label="Número de factura">
-                                    <input placeholder="Ej: 0001" value={numeroFactura} onChange={e=>setNumeroFactura(e.target.value)}
-                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"/>
+                                    <input placeholder="Ej: 0001" value={numeroFactura} onChange={e => setNumeroFactura(e.target.value)}
+                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400" />
                                 </Field>
                                 <Field label="Condición de pago">
-                                    <select value={condicion} onChange={e=>setCondicion(e.target.value)}
+                                    <select value={condicion} onChange={e => setCondicion(e.target.value)}
                                         className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 bg-white">
                                         <option>Contado</option>
                                         <option>Crédito</option>
                                     </select>
                                 </Field>
                                 <Field label="Cantidad de unidades (suma: +5+3+2)">
-                                    <input placeholder="Ej: +5+3+2" value={cantidadInput} onChange={e=>setCantidadInput(e.target.value)}
-                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"/>
+                                    <input placeholder="Ej: +5+3+2" value={cantidadInput} onChange={e => setCantidadInput(e.target.value)}
+                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400" />
                                     <p className="text-sm text-gray-500 mt-1">
                                         Total unidades: <strong className="text-green-700">{totalCantidad}</strong>
                                     </p>
                                 </Field>
                                 <Field label="Valor de la factura ($)">
-                                    <input type="number" placeholder="0.00" value={valorFactura} onChange={e=>setValorFactura(e.target.value)}
-                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"/>
+                                    <input type="number" placeholder="0.00" value={valorFactura} onChange={e => setValorFactura(e.target.value)}
+                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400" />
                                 </Field>
                                 {condicion === "Contado" && (
                                     <Field label="Número de recibo">
-                                        <input placeholder="Ej: R-0001" value={reciboVenta} onChange={e=>setReciboVenta(e.target.value)}
-                                            className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"/>
+                                        <input placeholder="Ej: R-0001" value={reciboVenta} onChange={e => setReciboVenta(e.target.value)}
+                                            className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400" />
                                     </Field>
                                 )}
                             </div>
@@ -315,20 +325,20 @@ export default function DocumentManager() {
                         {tipo === "Cobro" && (
                             <div className="space-y-3 border-t pt-4">
                                 <Field label="Cliente">
-                                    <input placeholder="Nombre del cliente" value={clienteCobro} onChange={e=>setClienteCobro(e.target.value)}
-                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+                                    <input placeholder="Nombre del cliente" value={clienteCobro} onChange={e => setClienteCobro(e.target.value)}
+                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" />
                                 </Field>
                                 <Field label="Factura de referencia">
-                                    <input placeholder="Ej: 0001" value={facturaRef} onChange={e=>setFacturaRef(e.target.value)}
-                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+                                    <input placeholder="Ej: 0001" value={facturaRef} onChange={e => setFacturaRef(e.target.value)}
+                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" />
                                 </Field>
                                 <Field label="Número de recibo">
-                                    <input placeholder="Ej: R-0001" value={recibo} onChange={e=>setRecibo(e.target.value)}
-                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+                                    <input placeholder="Ej: R-0001" value={recibo} onChange={e => setRecibo(e.target.value)}
+                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" />
                                 </Field>
                                 <Field label="Monto cobrado ($)">
-                                    <input type="number" placeholder="0.00" value={montoCobro} onChange={e=>setMontoCobro(e.target.value)}
-                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+                                    <input type="number" placeholder="0.00" value={montoCobro} onChange={e => setMontoCobro(e.target.value)}
+                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" />
                                 </Field>
                             </div>
                         )}
@@ -337,40 +347,40 @@ export default function DocumentManager() {
                         {tipo === "Ingreso" && (
                             <div className="space-y-3 border-t pt-4">
                                 <Field label="Fecha del ingreso">
-                                    <input type="date" value={fechaIngreso} onChange={e=>setFechaIngreso(e.target.value)}
-                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white"/>
+                                    <input type="date" value={fechaIngreso} onChange={e => setFechaIngreso(e.target.value)}
+                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white" />
                                 </Field>
                                 <Field label="Tipo de ingreso">
-                                    <select value={tipoIngreso} onChange={e=>setTipoIngreso(e.target.value)}
+                                    <select value={tipoIngreso} onChange={e => setTipoIngreso(e.target.value)}
                                         className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white">
-                                        {["Efectivo","Transferencia","Cheque","Tarjeta","Depósito","Remesa"].map(o=>(
+                                        {["Efectivo", "Transferencia", "Cheque", "Tarjeta", "Depósito", "Remesa"].map(o => (
                                             <option key={o}>{o}</option>
                                         ))}
                                     </select>
                                 </Field>
                                 {tipoIngreso !== "Efectivo" && (
                                     <Field label="Banco">
-                                        <input placeholder="Nombre del banco" value={banco} onChange={e=>setBanco(e.target.value)}
-                                            className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"/>
+                                        <input placeholder="Nombre del banco" value={banco} onChange={e => setBanco(e.target.value)}
+                                            className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" />
                                     </Field>
                                 )}
                                 <Field label="Referencia">
-                                    <input placeholder="Número de referencia" value={referencia} onChange={e=>setReferencia(e.target.value)}
-                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"/>
+                                    <input placeholder="Número de referencia" value={referencia} onChange={e => setReferencia(e.target.value)}
+                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" />
                                 </Field>
                                 <Field label="Monto ($)">
-                                    <input type="number" placeholder="0.00" value={montoIngreso} onChange={e=>setMontoIngreso(e.target.value)}
-                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"/>
+                                    <input type="number" placeholder="0.00" value={montoIngreso} onChange={e => setMontoIngreso(e.target.value)}
+                                        className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" />
                                 </Field>
                                 <Field label="Observaciones">
-                                    <textarea placeholder="Notas adicionales..." value={obsIngreso} onChange={e=>setObsIngreso(e.target.value)}
-                                        rows={3} className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 resize-y"/>
+                                    <textarea placeholder="Notas adicionales..." value={obsIngreso} onChange={e => setObsIngreso(e.target.value)}
+                                        rows={3} className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 resize-y" />
                                 </Field>
                             </div>
                         )}
 
                         <div className="flex justify-end gap-2 pt-2">
-                            <button onClick={()=>{setOpen(false);reset();}}
+                            <button onClick={() => { setOpen(false); reset(); }}
                                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
                                 Cancelar
                             </button>
@@ -392,12 +402,12 @@ export default function DocumentManager() {
                     </span>
                 </div>
                 <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full text-sm" style={{tableLayout:"fixed"}}>
+                    <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
                         <colgroup>
-                            <col style={{width:"18%"}}/><col style={{width:"12%"}}/>
-                            <col style={{width:"9%"}}/><col style={{width:"13%"}}/>
-                            <col style={{width:"14%"}}/><col style={{width:"14%"}}/>
-                            <col style={{width:"12%"}}/><col style={{width:"8%"}}/>
+                            <col style={{ width: "18%" }} /><col style={{ width: "12%" }} />
+                            <col style={{ width: "9%" }} /><col style={{ width: "13%" }} />
+                            <col style={{ width: "14%" }} /><col style={{ width: "14%" }} />
+                            <col style={{ width: "12%" }} /><col style={{ width: "8%" }} />
                         </colgroup>
                         <thead className="bg-green-100">
                             <tr>
@@ -421,14 +431,14 @@ export default function DocumentManager() {
                                     <td className="px-3 py-2 text-right">{v.cantidad}</td>
                                     <td className="px-3 py-2 truncate">{v.recibo || "—"}</td>
                                     <td className="px-3 py-2 text-right font-medium text-green-700 bg-green-50">
-                                        {v.condicion==="Contado"?`$${v.monto.toFixed(2)}`:""}
+                                        {v.condicion === "Contado" ? `$${v.monto.toFixed(2)}` : ""}
                                     </td>
                                     <td className="px-3 py-2 text-right font-medium text-yellow-700 bg-yellow-50">
-                                        {v.condicion==="Crédito"?`$${v.monto.toFixed(2)}`:""}
+                                        {v.condicion === "Crédito" ? `$${v.monto.toFixed(2)}` : ""}
                                     </td>
                                     <td className="px-3 py-2 text-right font-bold text-green-800">${v.monto.toFixed(2)}</td>
                                     <td className="px-3 py-2 text-center">
-                                        <button onClick={()=>handleEliminar(v.id)}
+                                        <button onClick={() => handleEliminar(v.id)}
                                             className="text-red-400 hover:text-red-600 hover:bg-red-50 rounded p-1 transition-colors">✕</button>
                                     </td>
                                 </tr>
@@ -458,11 +468,11 @@ export default function DocumentManager() {
                     </span>
                 </div>
                 <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full text-sm" style={{tableLayout:"fixed"}}>
+                    <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
                         <colgroup>
-                            <col style={{width:"27%"}}/><col style={{width:"22%"}}/>
-                            <col style={{width:"22%"}}/><col style={{width:"19%"}}/>
-                            <col style={{width:"10%"}}/>
+                            <col style={{ width: "27%" }} /><col style={{ width: "22%" }} />
+                            <col style={{ width: "22%" }} /><col style={{ width: "19%" }} />
+                            <col style={{ width: "10%" }} />
                         </colgroup>
                         <thead className="bg-blue-100">
                             <tr>
@@ -483,7 +493,7 @@ export default function DocumentManager() {
                                     <td className="px-3 py-2 truncate">{c.recibo}</td>
                                     <td className="px-3 py-2 text-right font-bold text-blue-700">${c.monto.toFixed(2)}</td>
                                     <td className="px-3 py-2 text-center">
-                                        <button onClick={()=>handleEliminar(c.id)}
+                                        <button onClick={() => handleEliminar(c.id)}
                                             className="text-red-400 hover:text-red-600 hover:bg-red-50 rounded p-1 transition-colors">✕</button>
                                     </td>
                                 </tr>
@@ -502,12 +512,12 @@ export default function DocumentManager() {
                     </span>
                 </div>
                 <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full text-sm" style={{tableLayout:"fixed"}}>
+                    <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
                         <colgroup>
-                            <col style={{width:"11%"}}/><col style={{width:"13%"}}/>
-                            <col style={{width:"14%"}}/><col style={{width:"16%"}}/>
-                            <col style={{width:"24%"}}/><col style={{width:"14%"}}/>
-                            <col style={{width:"8%"}}/>
+                            <col style={{ width: "11%" }} /><col style={{ width: "13%" }} />
+                            <col style={{ width: "14%" }} /><col style={{ width: "16%" }} />
+                            <col style={{ width: "24%" }} /><col style={{ width: "14%" }} />
+                            <col style={{ width: "8%" }} />
                         </colgroup>
                         <thead className="bg-purple-100">
                             <tr>
@@ -532,7 +542,7 @@ export default function DocumentManager() {
                                     <td className="px-3 py-2 truncate text-gray-500 text-xs">{i.obs || "—"}</td>
                                     <td className="px-3 py-2 text-right font-bold text-purple-700">${i.monto.toFixed(2)}</td>
                                     <td className="px-3 py-2 text-center">
-                                        <button onClick={()=>handleEliminar(i.id)}
+                                        <button onClick={() => handleEliminar(i.id)}
                                             className="text-red-400 hover:text-red-600 hover:bg-red-50 rounded p-1 transition-colors">✕</button>
                                     </td>
                                 </tr>
@@ -557,9 +567,9 @@ export default function DocumentManager() {
                     <h3 className="font-semibold text-gray-600 text-sm uppercase tracking-wide">Observaciones generales del día</h3>
                 </div>
                 <div className="p-4">
-                    <textarea value={obsGenerales} onChange={e=>setObsGenerales(e.target.value)}
+                    <textarea value={obsGenerales} onChange={e => setObsGenerales(e.target.value)}
                         placeholder="Escribe observaciones generales del día aquí..."
-                        rows={3} className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 resize-y text-sm"/>
+                        rows={3} className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 resize-y text-sm" />
                 </div>
             </div>
 
@@ -569,8 +579,8 @@ export default function DocumentManager() {
                     <div className="bg-gray-800 px-4 py-3">
                         <h3 className="font-semibold text-white text-sm uppercase tracking-wide">Cuadre de Caja</h3>
                     </div>
-                    <table className="w-full text-sm" style={{tableLayout:"fixed"}}>
-                        <colgroup><col style={{width:"55%"}}/><col style={{width:"45%"}}/></colgroup>
+                    <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
+                        <colgroup><col style={{ width: "55%" }} /><col style={{ width: "45%" }} /></colgroup>
                         <tbody>
                             <tr className="border-t border-gray-200">
                                 <td className="px-4 py-3 text-gray-600">Ventas al Contado</td>
@@ -594,17 +604,17 @@ export default function DocumentManager() {
                             </tr>
                             <tr className="border-t border-gray-200 bg-gray-50">
                                 <td className="px-4 py-3 text-gray-600 text-xs leading-snug">
-                                    Dinero esperado en caja<br/>
+                                    Dinero esperado en caja<br />
                                     <span className="text-gray-400">(Contado + Cobros)</span>
                                 </td>
                                 <td className="px-4 py-3 text-right font-semibold text-gray-800">${esperadoEnCaja.toFixed(2)}</td>
                             </tr>
-                            <tr className={`border-t-2 ${diferenciaCuadre===0?"border-green-400 bg-green-50":diferenciaCuadre>0?"border-green-400 bg-green-50":"border-red-400 bg-red-50"}`}>
+                            <tr className={`border-t-2 ${diferenciaCuadre === 0 ? "border-green-400 bg-green-50" : diferenciaCuadre > 0 ? "border-green-400 bg-green-50" : "border-red-400 bg-red-50"}`}>
                                 <td className="px-4 py-3 font-bold text-gray-800">
-                                    {diferenciaCuadre===0?"✓ Cuadre exacto":diferenciaCuadre>0?"✓ Sobrante en caja":"⚠ Faltante en caja"}
+                                    {diferenciaCuadre === 0 ? "✓ Cuadre exacto" : diferenciaCuadre > 0 ? "✓ Sobrante en caja" : "⚠ Faltante en caja"}
                                 </td>
-                                <td className={`px-4 py-3 text-right font-bold text-lg ${diferenciaCuadre>=0?"text-green-700":"text-red-700"}`}>
-                                    {diferenciaCuadre>0?"+":diferenciaCuadre<0?"-":""}${Math.abs(diferenciaCuadre).toFixed(2)}
+                                <td className={`px-4 py-3 text-right font-bold text-lg ${diferenciaCuadre >= 0 ? "text-green-700" : "text-red-700"}`}>
+                                    {diferenciaCuadre > 0 ? "+" : diferenciaCuadre < 0 ? "-" : ""}${Math.abs(diferenciaCuadre).toFixed(2)}
                                 </td>
                             </tr>
                         </tbody>
@@ -642,7 +652,7 @@ export default function DocumentManager() {
                                 >
                                     {sendStatus === "sending" ? "Guardando…" : "Guardar documento"}
                                 </button>
-                                {sendStatus === "ok"    && <p className="text-xs text-center text-green-600">✓ Guardado correctamente</p>}
+                                {sendStatus === "ok" && <p className="text-xs text-center text-green-600">✓ Guardado correctamente</p>}
                                 {sendStatus === "error" && <p className="text-xs text-center text-red-500">✕ Error al guardar</p>}
                             </div>
 
@@ -655,7 +665,7 @@ export default function DocumentManager() {
                                 >
                                     {processStatus === "sending" ? "Procesando…" : "Procesar documento"}
                                 </button>
-                                {processStatus === "ok"    && <p className="text-xs text-center text-green-600">✓ Procesado correctamente</p>}
+                                {processStatus === "ok" && <p className="text-xs text-center text-green-600">✓ Procesado correctamente</p>}
                                 {processStatus === "error" && <p className="text-xs text-center text-red-500">✕ Error al procesar</p>}
                             </div>
                         </div>
