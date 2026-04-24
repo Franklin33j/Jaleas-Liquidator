@@ -30,7 +30,9 @@ class PaymentExport implements FromCollection, WithHeadings, WithMapping, Should
             ->select([
                 'payments.*',
                 'customers.name as customer_name',
-            ])
+            ])->when($this->request->invoice_number, function ($q) {
+                $q->where('payments.invoice_number', 'LIKE', "%{$this->request->invoice_number}%");
+            })
             ->when($this->request->search, function ($q) {
                 $q->where('payments.receipt_number', 'LIKE', "%{$this->request->search}%");
             })

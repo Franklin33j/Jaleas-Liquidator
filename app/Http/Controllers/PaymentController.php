@@ -34,6 +34,10 @@ class PaymentController extends Controller
                     fn($q) => $q->where('payments.receipt_number', 'LIKE', "%{$request->search}%")
                 )
                 ->when(
+                    $request->filled('invoice_number'),
+                    fn($q) => $q->where('payments.invoice_number', 'LIKE', "%{$request->invoice_number}%")
+                )
+                ->when(
                     $request->filled('customer_id'),
                     fn($q) => $q->where('payments.customer_id', $request->customer_id)
                 )
@@ -56,7 +60,6 @@ class PaymentController extends Controller
             Log::error("Error al leer los pagos: " . $e->getMessage());
 
             return response()->json([
-
                 'error' => "No se ha podido procesar la operación, contacte a su administrador" . $e->getMessage(),
             ], 500);
         }
@@ -188,6 +191,10 @@ class PaymentController extends Controller
                     'customers.name as customer_name',
                     'customers.id as customer_id'
                 ])
+                 ->when(
+                    !empty($params['invoice_number']),
+                    fn($q) => $q->where('payments.invoice_number', 'LIKE', "%{$params['invoice_number']}%")
+                )
                 ->when(
                     !empty($params['search']),
                     fn($q) => $q->where('payments.receipt_number', 'LIKE', "%{$params['search']}%")

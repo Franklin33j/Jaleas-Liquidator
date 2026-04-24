@@ -77,12 +77,14 @@ const Toolbar = () => {
 
     const activeFilterCount = [
         filters.search !== '',
+        filters.invoice_number !== '',
         filters.customer_id !== null,
         filters.from_date !== today || filters.to_date !== today,
         filters.status !== 'all',
     ].filter(Boolean).length;
 
     const removeChip = (key) => handleFilterChange(key, initialFilters[key]);
+
     useEffect(() => {
         fetchPayments()
     }, [])
@@ -95,7 +97,7 @@ const Toolbar = () => {
                 {/* ── Fila Principal ── */}
                 <div className="flex flex-wrap items-center gap-2 p-3">
 
-                    {/* Búsqueda */}
+                    {/* Búsqueda N° Recibo */}
                     <div className="flex-1 min-w-[160px] relative group">
                         <Search
                             size={13}
@@ -112,6 +114,29 @@ const Toolbar = () => {
                         {filters.search && (
                             <button
                                 onClick={() => handleFilterChange('search', '')}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                                <X size={11} />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* N° Factura */}
+                    <div className="flex-1 min-w-[160px] relative group">
+                        <FileText
+                            size={13}
+                            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors"
+                        />
+                        <input
+                            type="text"
+                            placeholder="N° Factura..."
+                            className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white focus:border-indigo-300 transition-all placeholder-gray-400"
+                            value={filters.invoice_number}
+                            onChange={e => handleFilterChange('invoice_number', e.target.value)}
+                        />
+                        {filters.invoice_number && (
+                            <button
+                                onClick={() => handleFilterChange('invoice_number', '')}
                                 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                             >
                                 <X size={11} />
@@ -227,6 +252,9 @@ const Toolbar = () => {
                                 </span>
                                 {filters.search && (
                                     <FilterChip label={`"${filters.search}"`} onRemove={() => removeChip('search')} />
+                                )}
+                                {filters.invoice_number && (
+                                    <FilterChip label={`Factura: "${filters.invoice_number}"`} onRemove={() => removeChip('invoice_number')} />
                                 )}
                                 {filters.customer_id && (
                                     <FilterChip

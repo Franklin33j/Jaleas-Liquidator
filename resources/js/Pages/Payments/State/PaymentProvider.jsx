@@ -33,6 +33,7 @@ const PaymentProvider = ({ children }) => {
 
     const initialFilters = {
         search: '',
+        invoice_number:'',
         from_date: today,
         to_date: today,
         status: 'all',
