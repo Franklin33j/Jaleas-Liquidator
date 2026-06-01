@@ -75,7 +75,7 @@ const ReportTable = () => {
             if (headerFound && cleanRow.length >= 3) {
                 if (rowString.toLowerCase().includes("total")) return;
                 const terminoOriginal = String(row[19] || "").trim().toLowerCase();
-                let terminoNormalizado = "OTROS";
+                let terminoNormalizado = "CONTRA ENTREGA";
                 if (terminoOriginal.includes("contado")) terminoNormalizado = "CONTADO";
                 else if (terminoOriginal.includes("dias") || terminoOriginal.includes("días") || terminoOriginal.includes("credito")) terminoNormalizado = "CRÉDITO";
 
@@ -147,7 +147,6 @@ const ReportTable = () => {
     const totalGravado = calcGravado(totalVentaFiltrada);
     const totalIVA = calcIVA(totalVentaFiltrada);
 
-    // --- VISTA PREVIA PDF ---
     const previewPDF = () => {
         const doc = new jsPDF('l', 'mm', 'a4');
 
@@ -156,23 +155,23 @@ const ReportTable = () => {
             ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`
             : reportDate;
 
-        // ── Encabezado ──
-        doc.setFontSize(20);
-        doc.setFont(undefined, 'bold');
-        doc.text('JALEAS DEL PINO SA DE CV', 14, 16);
+        // ── Encabezado Término Medio ──
+        doc.setFontSize(14); // Balanceado entre 13 y 16
+        doc.setFont('helvetica', 'bold');
+        doc.text('JALEAS DEL PINO SA DE CV', 14, 13);
 
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'normal');
-        doc.text(`Vendedor: ${selectedVendedor || 'TODOS'}`, 14, 24);
-        doc.text(`Fecha de reporte: ${formattedReportDate}`, 14, 30);
+        doc.setFontSize(8); // Balanceado entre 7.5 y 8.5
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Vendedor: ${selectedVendedor || 'TODOS'}`, 14, 19);
+        doc.text(`Fecha de reporte: ${formattedReportDate}`, 14, 24);
 
-        // línea separadora
+        // Línea separadora
         doc.setDrawColor(180, 180, 180);
-        doc.line(14, 33, 283, 33);
+        doc.line(14, 27, 283, 27);
 
         // ── Tablas ──
-        const boxY = 37;
-        // ── Tablas por término ──
+        const boxY = 31; // Altura intermedia para el inicio de tablas
+
         const grupos = filteredData.reduce((acc, item) => {
             const t = item["Término"];
             if (!acc[t]) acc[t] = [];
@@ -188,16 +187,23 @@ const ReportTable = () => {
             const subGrav = calcGravado(subtotal);
             const subIVA = calcIVA(subtotal);
 
-            // etiqueta de término — texto plano sin caracteres especiales
             const terminoLabel = termino === 'CREDITO' ? 'CREDITO' : termino;
-            doc.setFontSize(9);
-            doc.setFont(undefined, 'bold');
+
+            // CONTROL DE DESBORDAMIENTO DE PÁGINA
+            if (currentY > 186) {
+                doc.addPage();
+                currentY = 16;
+            }
+
+            // Etiqueta de término en tamaño estándar balanceado
+            doc.setFontSize(7.5);
+            doc.setFont('helvetica', 'bold');
             doc.setTextColor(30, 58, 95);
             doc.text(`TERMINO: ${terminoLabel}`, 14, currentY + 1);
             doc.setTextColor(0, 0, 0);
 
             autoTable(doc, {
-                startY: currentY + 4,
+                startY: currentY + 3,
                 head: [[
                     'Tipo Doc.',
                     'No.',
@@ -232,61 +238,74 @@ const ReportTable = () => {
                 headStyles: {
                     fillColor: [30, 58, 95],
                     textColor: [255, 255, 255],
-                    fontSize: 7,
+                    fontSize: 6.0, // Punto medio perfecto
                     fontStyle: 'bold',
-                    cellPadding: 2,
+                    cellPadding: 1.2,
                 },
                 bodyStyles: {
-                    fontSize: 7,
-                    cellPadding: 1.5,
+                    fontSize: 6.0, // Punto medio de lectura cómoda sin desperdiciar papel
+                    cellPadding: 1.1, // Separación intermedia
                     textColor: [40, 40, 40],
                 },
                 alternateRowStyles: {
                     fillColor: [248, 250, 255],
                 },
                 footStyles: {
-                    fontSize: 7.5,
-                    cellPadding: 2,
+                    fontSize: 6.5,
+                    cellPadding: 1.2,
                 },
                 columnStyles: {
-                    0: { cellWidth: 28 },
-                    1: { cellWidth: 18 },
-                    2: { cellWidth: 22 },
-                    3: { cellWidth: 22 },
+                    0: { cellWidth: 25 },
+                    1: { cellWidth: 15 },
+                    2: { cellWidth: 19 },
+                    3: { cellWidth: 19 },
                     4: { cellWidth: 'auto' },
-                    5: { cellWidth: 28 },
-                    6: { cellWidth: 24 },
-                    7: { cellWidth: 28 },
+                    5: { cellWidth: 25 },
+                    6: { cellWidth: 21 },
+                    7: { cellWidth: 25 },
                 },
                 showFoot: 'lastPage',
             });
 
-            currentY = doc.lastAutoTable.finalY + 10;
+            // Espaciado intermedio entre tablas de 7mm
+            currentY = doc.lastAutoTable.finalY + 7;
         });
 
         // ── Pie de página: total general ──
+
+        if (currentY > 187) {
+            doc.addPage();
+            currentY = 16;
+        }
+
+        // Contenedor balanceado a 7mm de altura
         doc.setFillColor(30, 58, 95);
-        doc.roundedRect(14, currentY, 269, 14, 2, 2, 'F');
-        doc.setFontSize(9);
-        doc.setFont(undefined, 'bold');
+        doc.roundedRect(14, currentY, 269, 7, 1.2, 1.2, 'F');
+
+        doc.setFontSize(7.5); // Tamaño ideal para los totales
+        doc.setFont('helvetica', 'bold');
         doc.setTextColor(255, 255, 255);
-        doc.text('TOTAL GENERAL:', 18, currentY + 9);
-        doc.text(`$${fmt(totalVentaFiltrada)}`, 70, currentY + 9);
-        doc.text(`Gravado: $${fmt(totalGravado)}`, 130, currentY + 9);
-        doc.text(`IVA 13%: $${fmt(totalIVA)}`, 200, currentY + 9);
+
+        // Ajuste de altura: currentY + 4.7 centra la letra de tamaño 7.5 en la barra de 7mm
+        doc.text('TOTAL GENERAL:', 18, currentY + 4.7);
+        doc.text(`$${fmt(totalVentaFiltrada)}`, 70, currentY + 4.7);
+        doc.text(`Gravado: $${fmt(totalGravado)}`, 130, currentY + 4.7);
+        doc.text(`IVA 13%: $${fmt(totalIVA)}`, 200, currentY + 4.7);
+
+        // Limpieza de estados finales
         doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'normal');
 
         window.open(doc.output('bloburl'), '_blank');
     };
-
     return (
-        <div className="p-4 bg-slate-100 min-h-screen font-sans text-[11px]">
+        <div className="p-4 bg-slate-100 min-h-screen font-sans text-[9px]">
             <div className="max-w-[1600px] mx-auto">
                 {/* HEADER PANEL */}
                 <div className="bg-white p-5 rounded-t-xl shadow-lg border-b border-gray-200">
                     <div className="flex flex-col lg:flex-row justify-between items-center gap-4">
                         <div className="text-center lg:text-left">
-                            <h1 className="text-2xl font-black text-indigo-900 leading-tight">JALEAS DEL PINO</h1>
+                            <h1 className="text-xl font-black text-indigo-900 leading-tight">JALEAS DEL PINO</h1>
                             <span className="text-xs font-bold text-indigo-500 tracking-widest uppercase italic">Gestión de Documentos Fiscales</span>
                         </div>
 
@@ -332,22 +351,22 @@ const ReportTable = () => {
 
                 {/* TOTALES DEBAJO DEL HEADER */}
                 {filteredData.length > 0 && (
-                    <div className="bg-indigo-950 px-6 py-3 flex flex-wrap gap-8 items-center">
+                    <div className="bg-indigo-950 px-6 py-2 flex flex-wrap gap-8 items-center">
                         <div className="flex flex-col">
                             <span className="text-[9px] font-bold text-indigo-300 uppercase tracking-widest">Total General</span>
-                            <span className="text-lg font-black text-white">${fmt(totalVentaFiltrada)}</span>
+                            <span className="text-base font-black text-white">${fmt(totalVentaFiltrada)}</span>
                         </div>
                         <div className="flex flex-col">
                             <span className="text-[9px] font-bold text-blue-300 uppercase tracking-widest">Gravado</span>
-                            <span className="text-lg font-black text-blue-300">${fmt(totalGravado)}</span>
+                            <span className="text-base font-black text-blue-300">${fmt(totalGravado)}</span>
                         </div>
                         <div className="flex flex-col">
                             <span className="text-[9px] font-bold text-purple-300 uppercase tracking-widest">IVA 13%</span>
-                            <span className="text-lg font-black text-purple-300">${fmt(totalIVA)}</span>
+                            <span className="text-base font-black text-purple-300">${fmt(totalIVA)}</span>
                         </div>
                         <div className="ml-auto flex flex-col items-end">
                             <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">Registros</span>
-                            <span className="text-lg font-black text-white">{filteredData.length}</span>
+                            <span className="text-base font-black text-white">{filteredData.length}</span>
                         </div>
                     </div>
                 )}
@@ -356,7 +375,7 @@ const ReportTable = () => {
                 <div className="bg-white shadow-xl overflow-hidden rounded-b-xl border border-gray-200">
                     <div className="overflow-x-auto max-h-[75vh]">
                         <table className="w-full text-left border-collapse">
-                            <thead className="sticky top-0 bg-indigo-950 text-white text-[10px] uppercase tracking-wider">
+                            <thead className="sticky top-0 bg-indigo-950 text-white text-[9px] uppercase tracking-wider">
                                 <tr>
                                     <th className="px-4 py-4">Tipo Documento</th>
                                     <th className="px-4 py-4">No.</th>
